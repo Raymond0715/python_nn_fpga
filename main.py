@@ -8,6 +8,8 @@ import numpy as np
 import argparse
 import importlib
 import csv
+import pdb
+
 
 parser = argparse.ArgumentParser(
         description = 'Specify key arguments for this project.')
@@ -48,6 +50,9 @@ parser.add_argument(
 parser.add_argument(
         '--log_file', default = 'log_file.csv',
         help = 'Name of log file.')
+parser.add_argument(
+        '--device', default = '-1',
+        help = 'Choose GPU.')
 args = parser.parse_args()
 
 # Param
@@ -121,33 +126,28 @@ if __name__ == '__main__':
     y_train = tf.keras.utils.to_categorical(y_train, args.class_num)
     y_test  = tf.keras.utils.to_categorical(y_test, args.class_num)
 
-
-    # model = cifar10vgg(False)
-    # y_pred = model.predict(x_test)
-    # m = tf.keras.metrics.Accuracy()
-    # m.update_state(np.argmax(y_pred,1), np.argmax(y_test,1))
-    # pred_accuracy = m.result().numpy()
-
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
 
     datagen = tf.keras.preprocessing.image.ImageDataGenerator( 
-            # featurewise_center = True,
-            # featurewise_std_normalization = True,
-            width_shift_range = 0.1,  # randomly shift images horizontally (fraction of total width) 
-            height_shift_range = 0.1,  # randomly shift images vertically (fraction of total height) 
-            horizontal_flip = True,  # randomly flip images 
-            vertical_flip = False)  # randomly flip images
+            width_shift_range = 0.1, 
+            height_shift_range = 0.1, 
+            horizontal_flip = True, 
+            vertical_flip = False) 
     datagen.fit(x_train)
 
-    #optimization details
-    sgd = tf.keras.optimizers.SGD(
-            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
-    model = importlib.import_module(
-            '.' + args.model, 'models').model 
+    if '-1' in args.device:
+        mirrored_strategy = tf.distribute.MirroredStrategy()
+    else:
+        device_index = args.device.split(',')
+        device_str = ['/gpu:' + s for s in device_index]
+        mirrored_strategy = tf.distribute.MirroredStrategy(devices = device_str)
 
-    # model.compile(
-            # loss='categorical_crossentropy', optimizer=sgd,
-            # metrics=['accuracy'], run_eagerly = True)
+    with mirrored_strategy.scope():
+        sgd = tf.keras.optimizers.SGD(
+                lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+        model = importlib.import_module(
+                '.' + args.model, 'models').model 
+
     model.compile(
             loss='categorical_crossentropy', optimizer=sgd,
             metrics=['accuracy'])
