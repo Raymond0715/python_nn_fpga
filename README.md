@@ -32,7 +32,8 @@ python main.py \
 	--num_epochs <epoch/number, e.g. 250> \
 	--learning_rate <learning/rate, e.g. 0.1> \
 	--log_dir <log/dir, e.g. log_dir> \
-	--log_file <log/file, e.g. log_file.txt>
+	--log_file <log/file, e.g. log_file.txt> \
+	--device <GPUs/index, e.g. 0,1,2,3>
 ```
 
 example: 
@@ -40,14 +41,15 @@ example:
 ```sh
 python main.py \
 	--model resnet20 \
-    --class_num 10 \
-    --dataset cifar10 \
-    --quantilize ste \
-    --quantilize_w 1 \
-    --quantilize_x 1 \
-    --weight_decay 0 \
-    --log_dir resnet20_cifar10 \
-    --log_file ng.csv
+	--class_num 10 \
+	--dataset cifar10 \
+	--quantilize ste \
+	--quantilize_w 1 \
+	--quantilize_x 1 \
+	--weight_decay 0.0005 \
+	--log_dir resnet20_cifar10 \
+	--log_file ste.csv \
+	--device 0,1,2,3
 ```
 
 Besides, you can run `python main.py -h` for help. 

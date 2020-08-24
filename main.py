@@ -71,12 +71,10 @@ def normalize(X_train,X_test):
 
 
 def lr_scheduler(epoch):
-    if epoch < 20:
+    if epoch < 80:
         return 0.1
-    elif epoch < 80:
-        return 0.01
     elif epoch < 140:
-        return 0.001
+        return 0.01
     elif epoch < 200:
         return 0.0001
     else:
