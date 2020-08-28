@@ -1,7 +1,7 @@
 import tensorflow as tf
-from tensorflow.keras.datasets import cifar10
-from tensorflow.keras.datasets import cifar100
 
+# from data import get_data
+import data
 from pathlib import Path
 import math
 import numpy as np
@@ -11,6 +11,7 @@ import csv
 import pdb
 
 
+# Argument
 parser = argparse.ArgumentParser(
         description = 'Specify key arguments for this project.')
 parser.add_argument(
@@ -55,19 +56,20 @@ parser.add_argument(
         help = 'Choose GPU.')
 args = parser.parse_args()
 
+
 # Param
 lr_drop = 20
 lr_decay = 1e-6
 learning_rate = args.learning_rate
 batch_size = args.batch_size
 num_epochs = args.num_epochs
-
-def normalize(X_train,X_test):
-    mean    = np.mean(X_train,axis=(0, 1, 2, 3))
-    std     = np.std(X_train, axis=(0, 1, 2, 3))
-    X_train = (X_train-mean)/(std+1e-7)
-    X_test  = (X_test-mean)/(std+1e-7)
-    return X_train, X_test
+# Especially for imagenet
+train_dataset_directory = \
+        Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_train'
+val_dataset_directory = \
+        Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_val'
+img_height = 256
+img_width  = 256
 
 
 def lr_scheduler(epoch):
@@ -87,12 +89,18 @@ class NGalpha(tf.keras.callbacks.Callback):
         super(NGalpha, self).__init__()
         
     def on_epoch_begin(self, epoch, logs = None):
-        self.model.alpha = \
+        self.model.alpha[0] = \
                 1.0 / (math.e - 1.0) * \
-                (math.e ** (float(epoch) / self.model.num_epochs) - 1)
+                (math.e ** (float(epoch) / self.model.num_epochs) - 1.0)
+        # self.model.alpha[0] = 1.0
 
     def on_test_begin(self, logs = None):
-        self.model.alpha = 1
+        # self.model.alpha[0] = 1.0
+        # self.model.alpha[0] = 1
+        pass
+        # self.model.alpha[0] = \
+                # 1.0 / (math.e - 1.0) * \
+                # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0)
 
     def on_epoch_end(self, epoch, logs = None):
         current_dir = Path.cwd()
@@ -108,54 +116,49 @@ class NGalpha(tf.keras.callbacks.Callback):
 
 
 if __name__ == '__main__':
-    if args.dataset == 'cifar10':
-        # The data, shuffled and split between train and test sets:
-        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-    elif args.dataset == 'cifar100':
-        # The data, shuffled and split between train and test sets:
-        (x_train, y_train), (x_test, y_test) = cifar100.load_data()
+    # # Config GPU
+    # if '-1' in args.device:
+        # mirrored_strategy = tf.distribute.MirroredStrategy()
+    # else:
+        # device_index = args.device.split(',')
+        # device_str = ['/gpu:' + s for s in device_index]
+        # mirrored_strategy = tf.distribute.MirroredStrategy(devices = device_str)
 
-    x_train = x_train.astype('float32')
-    x_test  = x_test.astype('float32')
+    # with mirrored_strategy.scope():
+        # sgd = tf.keras.optimizers.SGD(
+                # lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+        # model = importlib.import_module(
+                # '.' + args.model, 'models').model 
 
-    # Normalization
-    x_train, x_test = normalize(x_train, x_test)
+    sgd = tf.keras.optimizers.SGD(
+            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+    model = importlib.import_module(
+            '.' + args.model, 'models').model 
 
-    y_train = tf.keras.utils.to_categorical(y_train, args.class_num)
-    y_test  = tf.keras.utils.to_categorical(y_test, args.class_num)
+    # Get dataset 
+    train_dataset, val_dataset, steps_per_epoch = data.get_data(args.dataset)
+    print('[DEBUG][main.py] steps_per_epoch:', steps_per_epoch)
 
-    reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
-
-    datagen = tf.keras.preprocessing.image.ImageDataGenerator( 
-            width_shift_range = 0.1, 
-            height_shift_range = 0.1, 
-            horizontal_flip = True, 
-            vertical_flip = False) 
-    datagen.fit(x_train)
-
-    if '-1' in args.device:
-        mirrored_strategy = tf.distribute.MirroredStrategy()
-    else:
-        device_index = args.device.split(',')
-        device_str = ['/gpu:' + s for s in device_index]
-        mirrored_strategy = tf.distribute.MirroredStrategy(devices = device_str)
-
-    with mirrored_strategy.scope():
-        sgd = tf.keras.optimizers.SGD(
-                lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
-        model = importlib.import_module(
-                '.' + args.model, 'models').model 
-
+    # Config model for train
     model.compile(
             loss='categorical_crossentropy', optimizer=sgd,
             metrics=['accuracy'])
+    # model.compile(
+            # loss='categorical_crossentropy', optimizer=sgd,
+            # metrics=['accuracy'], run_eagerly = True)
+
+    # Learning rate call back
+    reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
 
     # training process in a for loop with learning rate drop every 20 epoches.
     historytemp = model.fit(
-            datagen.flow(x_train, y_train, batch_size = batch_size), 
-            steps_per_epoch=x_train.shape[0] // batch_size, 
+            # datagen.flow(x_train, y_train, batch_size = batch_size), 
+            train_dataset,
+            # steps_per_epoch=x_train.shape[0] // batch_size, 
+            steps_per_epoch=steps_per_epoch, 
             epochs=num_epochs, 
-            validation_data=(x_test, y_test),
+            # validation_data=(x_test, y_test),
+            validation_data=val_dataset,
             callbacks=[
                 reduce_lr,
                 NGalpha()],

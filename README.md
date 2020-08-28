@@ -50,6 +50,18 @@ python main.py \
 	--log_dir resnet20_cifar10 \
 	--log_file ste.csv \
 	--device 0,1,2,3
+
+python main.py \
+	--model resnet20 \
+	--class_num 10 \
+	--dataset cifar10 \
+	--quantilize ste \
+	--quantilize_w 1 \
+	--quantilize_x 1 \
+	--weight_decay 0.0005 \
+	--log_dir resnet20_cifar10 \
+	--log_file ste.csv \
+	--device 0,1,2,3
 ```
 
 Besides, you can run `python main.py -h` for help. 

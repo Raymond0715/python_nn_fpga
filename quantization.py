@@ -1,4 +1,5 @@
 import tensorflow as tf
+import pdb
 
 def QuantilizeFnSTE(Wbit, Abit):
     def RoundPower2(x, k=4):
@@ -89,4 +90,5 @@ def QuantilizeFnNG(Wbit, Abit):
 
 
 def tangent(x, x_quantilize, alpha):
+    # print('[DEBUG][quantization.py] alpha:', alpha)
     return x - (x - x_quantilize) * alpha

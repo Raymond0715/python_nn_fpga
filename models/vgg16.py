@@ -6,6 +6,7 @@ from tensorflow.keras import regularizers
 from nn_utils import QConv2D
 from quantization import QuantilizeFnSTE, QuantilizeFnNG 
 from main import args
+import pdb
 
 class VGGUnit(tf.keras.layers.Layer):
     def __init__(
@@ -15,7 +16,7 @@ class VGGUnit(tf.keras.layers.Layer):
             quantilize_w = 32,
             quantilize_x = 32,
             weight_decay = 0.0005,
-            alpha        = 0 ):
+            alpha        = [0] ):
 
         super(VGGUnit, self).__init__()
         self.quantilize   = quantilize
@@ -34,6 +35,7 @@ class VGGUnit(tf.keras.layers.Layer):
     def call(self, input_tensor):
         x = self.conv(input_tensor)
         x = self.bn(x)
+        # print('[DEBUG][models/vgg16.py] vggunit alpha:', self.alpha)
         if self.quantilize != 'full' and self.quantilize_x == 1:
             # print('[DEBUG][models/vgg16.py] VGG init quantilize')
             x = tf.clip_by_value(x, -1, 1)
@@ -53,7 +55,7 @@ class VGGBlock(tf.keras.layers.Layer):
             quantilize_x = 32,
             first        = False,
             weight_decay = 0.0005,
-            alpha        = 0):
+            alpha        = [0]):
 
         super(VGGBlock, self).__init__()
         self.num_units    = num_units
@@ -114,8 +116,8 @@ class VGG16(tf.keras.Model):
         self.quantilize   = quantilize
         self.quantilize_w = quantilize_w
         self.quantilize_x = quantilize_x
-        self.alpha = 0
-        self.num_epochs = num_epochs
+        self.alpha        = [0]
+        self.num_epochs   = num_epochs
 
         self.dense1 = Dense(
                 512,
@@ -162,6 +164,7 @@ class VGG16(tf.keras.Model):
                 alpha        = self.alpha)
 
     def call(self, input_tensor):
+        # print('[DEBUG][models/vgg16.py] vgg16 alpha:', self.alpha)
         x = input_tensor
 
         x = self.block1(x)
