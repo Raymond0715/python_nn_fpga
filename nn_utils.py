@@ -16,7 +16,7 @@ class QConv2D(tf.keras.layers.Layer):
             weight_decay = 0.0005,
             use_bias = True,
             name = None,
-            alpha = [0]):
+            alpha = None):
 
         super(QConv2D, self).__init__()
         self.kernel_depth = kernel_depth
@@ -63,10 +63,10 @@ class QConv2D(tf.keras.layers.Layer):
         elif self.quantilize == 'ng':
             # print('[DEBUG][nn_utils.py] QConv2D call ng')
             quantize_filters = self.QuantilizeWeight(self.filters)
-            filters = tangent(self.filters, quantize_filters, self.alpha[0])
+            filters = tangent(self.filters, quantize_filters, self.alpha)
             input_tensor_quantilize = self.QuantilizeActivation(input_tensor)
             input_tensor = tangent(
-                    input_tensor, input_tensor_quantilize, self.alpha[0])
+                    input_tensor, input_tensor_quantilize, self.alpha)
         else:
             # print('[DEBUG][nn_utils.py] QConv2D call full')
             filters = self.filters

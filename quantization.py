@@ -27,7 +27,6 @@ def QuantilizeFnSTE(Wbit, Abit):
             max = CeilPower2(tf.reduce_max(tf.abs(w)))
             w = w / max
             output =  max * RoundPower2(w, Wbit)
-        # output = w
 
         def Grad(dy):
             return dy
@@ -47,7 +46,6 @@ def QuantilizeFnSTE(Wbit, Abit):
             max = CeilPower2(tf.reduce_max(tf.abs(x)))
             x = x / max
             output = max * RoundPower2(x, Abit)
-        # output = x
 
         def Grad(dy):
             return dy
@@ -60,9 +58,10 @@ def QuantilizeFnSTE(Wbit, Abit):
 def QuantilizeFnNG(Wbit, Abit):
     def QuantilizeWeight(w):
         if Wbit == 1:   # BNN
-            mean = tf.reduce_mean(tf.abs(w))
-            E = tf.stop_gradient(mean)
-            output = tf.sign(w / E) * E
+            # mean = tf.reduce_mean(tf.abs(w))
+            # E = tf.stop_gradient(mean)
+            # output = tf.sign(w / E) * E
+            output = tf.sign(w)
         elif Wbit == 32:
             output = w
         else:   # QNN
@@ -74,9 +73,10 @@ def QuantilizeFnNG(Wbit, Abit):
 
     def QuantilizeActivation(x):
         if Abit == 1:   # BNN
-            mean = tf.reduce_mean(tf.abs(x))
-            E = tf.stop_gradient(mean)
-            output = tf.sign(x / E) * E
+            # mean = tf.reduce_mean(tf.abs(x))
+            # E = tf.stop_gradient(mean)
+            # output = tf.sign(x / E) * E
+            output = tf.sign(x)
         elif Abit == 32:
             output = x
         else:   # QNN
@@ -91,4 +91,4 @@ def QuantilizeFnNG(Wbit, Abit):
 
 def tangent(x, x_quantilize, alpha):
     # print('[DEBUG][quantization.py] alpha:', alpha)
-    return x - (x - x_quantilize) * alpha
+    return x - (x - x_quantilize) * alpha.value()

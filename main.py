@@ -89,15 +89,19 @@ class NGalpha(tf.keras.callbacks.Callback):
         super(NGalpha, self).__init__()
         
     def on_epoch_begin(self, epoch, logs = None):
-        self.model.alpha[0] = \
+        self.model.alpha.assign(
                 1.0 / (math.e - 1.0) * \
-                (math.e ** (float(epoch) / self.model.num_epochs) - 1.0)
+                (math.e ** (float(epoch) / self.model.num_epochs) - 1.0))
+        # self.model.alpha.assign(
+                # 0.5 / (math.e - 1.0) * \
+                # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
+                
         # self.model.alpha[0] = 1.0
 
     def on_test_begin(self, logs = None):
         # self.model.alpha[0] = 1.0
-        # self.model.alpha[0] = 1
-        pass
+        self.model.alpha.assign(1.0)
+        # print('[INFO][main.py] test alpha:', self.model.alpha.)
         # self.model.alpha[0] = \
                 # 1.0 / (math.e - 1.0) * \
                 # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0)

@@ -16,7 +16,7 @@ class VGGUnit(tf.keras.layers.Layer):
             quantilize_w = 32,
             quantilize_x = 32,
             weight_decay = 0.0005,
-            alpha        = [0] ):
+            alpha        = None ):
 
         super(VGGUnit, self).__init__()
         self.quantilize   = quantilize
@@ -55,7 +55,7 @@ class VGGBlock(tf.keras.layers.Layer):
             quantilize_x = 32,
             first        = False,
             weight_decay = 0.0005,
-            alpha        = [0]):
+            alpha        = None):
 
         super(VGGBlock, self).__init__()
         self.num_units    = num_units
@@ -116,7 +116,7 @@ class VGG16(tf.keras.Model):
         self.quantilize   = quantilize
         self.quantilize_w = quantilize_w
         self.quantilize_x = quantilize_x
-        self.alpha        = [0]
+        self.alpha        = tf.Variable(0., trainable = False)
         self.num_epochs   = num_epochs
 
         self.dense1 = Dense(
