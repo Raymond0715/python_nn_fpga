@@ -21,7 +21,7 @@ class ResnetUnitL2(tf.keras.layers.Layer):
             quantilize_w = 32,
             quantilize_x = 32,
             weight_decay = 0.0005,
-            alpha        = 0):
+            alpha        = None):
 
         super(ResnetUnitL2, self).__init__()
         self.strides = strides
@@ -105,7 +105,7 @@ class ResnetBlockL2(tf.keras.layers.Layer):
             quantilize_w = 32,
             quantilize_x = 32,
             weight_decay = 0.0005,
-            alpha        = 0):
+            alpha        = None):
 
         super(ResnetBlockL2, self).__init__()
         self.num_units    = num_units
@@ -156,7 +156,7 @@ class Resnet20(tf.keras.Model):
         self.quantilize   = quantilize
         self.quantilize_w = quantilize_w
         self.quantilize_x = quantilize_x
-        self.alpha = 0
+        self.alpha = tf.Variable(0., trainable = False)
         self.num_epochs = num_epochs
 
         self.conv_first = QConv2D(
