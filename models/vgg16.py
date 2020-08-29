@@ -36,7 +36,7 @@ class VGGUnit(tf.keras.layers.Layer):
         x = self.conv(input_tensor)
         x = self.bn(x)
         # print('[DEBUG][models/vgg16.py] vggunit alpha:', self.alpha)
-        if self.quantilize != 'full' and self.quantilize_x == 1:
+        if self.quantilize == 'ste' and self.quantilize_x == 1:
             # print('[DEBUG][models/vgg16.py] VGG init quantilize')
             x = tf.clip_by_value(x, -1, 1)
         else:
@@ -181,7 +181,7 @@ class VGG16(tf.keras.Model):
         x = Flatten()(x)
         x = self.dense1(x)
         x = self.bn1(x)
-        if self.quantilize != 'full' and self.quantilize_x == 1:
+        if self.quantilize == 'ste' and self.quantilize_x == 1:
             # print('[DEBUG][models/vgg16.py] VGG call quantilize')
             x = tf.clip_by_value(x, -1, 1)
         else:
