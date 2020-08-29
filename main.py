@@ -73,15 +73,15 @@ img_width  = 256
 
 
 def lr_scheduler(epoch):
-    if epoch < 80:
-        return 0.1
-    elif epoch < 140:
-        return 0.01
-    elif epoch < 200:
-        return 0.0001
-    else:
-        return 0.00001
-    # return learning_rate * (0.5 ** (epoch // lr_drop))
+    # if epoch < 80:
+        # return 0.1
+    # elif epoch < 140:
+        # return 0.01
+    # elif epoch < 200:
+        # return 0.0001
+    # else:
+        # return 0.00001
+    return learning_rate * (0.5 ** (epoch // lr_drop))
 
 
 class NGalpha(tf.keras.callbacks.Callback):

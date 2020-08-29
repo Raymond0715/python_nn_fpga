@@ -62,7 +62,9 @@ class QConv2D(tf.keras.layers.Layer):
             input_tensor = self.QuantilizeActivation(input_tensor)
         elif self.quantilize == 'ng':
             # print('[DEBUG][nn_utils.py] QConv2D call ng')
-            quantize_filters = self.QuantilizeWeight(self.filters)
+            filters = tf.clip_by_value(self.filters, -1, 1)
+            quantize_filters = self.QuantilizeWeight(filters)
+            # quantize_filters = self.QuantilizeWeight(self.filters)
             filters = tangent(self.filters, quantize_filters, self.alpha)
             input_tensor_quantilize = self.QuantilizeActivation(input_tensor)
             input_tensor = tangent(

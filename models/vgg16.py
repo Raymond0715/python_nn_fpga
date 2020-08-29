@@ -40,7 +40,7 @@ class VGGUnit(tf.keras.layers.Layer):
             # print('[DEBUG][models/vgg16.py] VGG init quantilize')
             x = tf.clip_by_value(x, -1, 1)
         elif self.quantilize == 'ng' and self.quantilize_x ==1:
-            pass
+            x = tf.clip_by_value(x, -1, 1)
         else:
             # print('[DEBUG][models/vgg16.py] VGG init full')
             x = Activation('relu')(x)
@@ -187,7 +187,7 @@ class VGG16(tf.keras.Model):
             # print('[DEBUG][models/vgg16.py] VGG call quantilize')
             x = tf.clip_by_value(x, -1, 1)
         elif self.quantilize == 'ng' and self.quantilize_x == 1:
-            pass
+            x = tf.clip_by_value(x, -1, 1)
         else:
             # print('[DEBUG][models/vgg16.py] VGG call full')
             x = Activation('relu')(x)
