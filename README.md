@@ -21,18 +21,21 @@ Supported Model: resnet 20 and vgg 16
 
 ```sh
 python main.py \
-	--model <model/name> \ ## resnet20 or vgg16
+	--model <model/name> \ # Must be one of resnet20 and vgg16
+	--pretrain_path <pretrain/path, default = None> \
 	--class_num <class/number> \
-	--dataset <dataset> \
-	--quantilize <Choose quantization method> \ # full, ste or ng
-	--quantilize_w <weights/bits/width, e.g. 32> \
-	--quantilize_x <activation/bits/width, e.g. 32> \
+	--dataset <dataset> \ # Must be one of cifar10 and cifar100
+	--quantilize <Choose quantization method> \ # Must be one of full, ste and ng
+	--quantilize_w <weights/bits/width, e.g. 32> \ # Weights bits width for quantilize model
+	--quantilize_x <activation/bits/width, e.g. 32> \ # Activation bits width for quantilize model
 	--weight_decay <weight/decay, e.g. 0.0005> \
 	--batch_size <batch/size, e.g. 128> \
 	--num_epochs <epoch/number, e.g. 250> \
 	--learning_rate <learning/rate, e.g. 0.1> \
 	--log_dir <log/dir, e.g. log_dir> \
 	--log_file <log/file, e.g. log_file.txt> \
+	--ckpt_dir <ckpt/dir, e.g. ckpt> \
+	--ckpt_file <ckpt/file, e.g. model> \
 	--device <GPUs/index, e.g. 0,1,2,3>
 ```
 
@@ -41,6 +44,7 @@ example:
 ```sh
 python main.py \
 	--model resnet20 \
+	--pretrain_path ckpt/resnet20_cifar10/
 	--class_num 10 \
 	--dataset cifar10 \
 	--quantilize ste \
@@ -49,19 +53,25 @@ python main.py \
 	--weight_decay 0.0005 \
 	--log_dir resnet20_cifar10 \
 	--log_file ste.csv \
+	--ckpt_dir resnet20_cifar10 \
+	--ckpt_file ste.h5 \
 	--device 0,1,2,3
 
 python main.py \
-	--model resnet20 \
+	--model vgg16 \
+	--pretrain_path ckpt/vgg16/
 	--class_num 10 \
 	--dataset cifar10 \
 	--quantilize ste \
 	--quantilize_w 1 \
 	--quantilize_x 1 \
 	--weight_decay 0.0005 \
-	--log_dir resnet20_cifar10 \
+	--log_dir vgg16_cifar10 \
 	--log_file ste.csv \
+	--ckpt_dir vgg16_cifar10 \
+	--ckpt_file ste.h5 \
 	--device 0,1,2,3
+
 ```
 
 Besides, you can run `python main.py -h` for help. 

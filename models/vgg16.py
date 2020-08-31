@@ -8,6 +8,8 @@ from quantization import QuantilizeFnSTE, QuantilizeFnNG
 from main import args
 import pdb
 
+
+# class VGGUnit(tf.keras.Model):
 class VGGUnit(tf.keras.layers.Layer):
     def __init__(
             self,
@@ -47,6 +49,8 @@ class VGGUnit(tf.keras.layers.Layer):
 
         return x
 
+
+# class VGGBlock(tf.keras.Model):
 class VGGBlock(tf.keras.layers.Layer):
     def __init__(
             self,
@@ -102,6 +106,7 @@ class VGGBlock(tf.keras.layers.Layer):
             x = self.units[i](x)
 
         return x
+
 
 class VGG16(tf.keras.Model):
     def __init__(

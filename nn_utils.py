@@ -47,12 +47,14 @@ class QConv2D(tf.keras.layers.Layer):
                     int(input_shape[-1]),                   
                     self.kernel_depth],
                 initializer = tf.keras.initializers.GlorotUniform(),
-                regularizer = regularizers.l2(self.weight_decay))
+                regularizer = regularizers.l2(self.weight_decay),
+                name = 'weights')
 
         if self.use_bias:
             self.bias = self.add_weight(
                     shape = self.kernel_depth,
-                    initializer = tf.keras.initializers.Zeros())
+                    initializer = tf.keras.initializers.Zeros(),
+                    name = 'bias')
         
     def call(self, input_tensor):
         if self.quantilize == 'ste':

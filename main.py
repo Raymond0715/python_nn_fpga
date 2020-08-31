@@ -18,6 +18,9 @@ parser.add_argument(
         '--model', default = 'resnet20', 
         help = 'Name of loaded model. Must be one of resnet20 and vgg16')
 parser.add_argument(
+        '--pretrain_path', default = None,
+        help = 'Path of pretrain weight.')
+parser.add_argument(
         '--class_num', default = 10, type = int,
         help = 'Number of output class.')
 parser.add_argument(
@@ -51,6 +54,12 @@ parser.add_argument(
 parser.add_argument(
         '--log_file', default = 'log_file.csv',
         help = 'Name of log file.')
+parser.add_argument(
+        '--ckpt_dir', default = 'ckpt',
+        help = 'Directory of ckpt. Always in `ckpt` directory.')
+parser.add_argument(
+        '--ckpt_file', default = 'model',
+        help = 'Name of ckpt.')
 parser.add_argument(
         '--device', default = '-1',
         help = 'Choose GPU.')
@@ -135,22 +144,26 @@ if __name__ == '__main__':
         # model = importlib.import_module(
                 # '.' + args.model, 'models').model 
 
-    sgd = tf.keras.optimizers.SGD(
-            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
-    model = importlib.import_module(
-            '.' + args.model, 'models').model 
+    # Define CNN architecture
+    model = importlib.import_module('.' + args.model, 'models').model 
+
+    # Load weights
+    if args.pretrain_path != None:
+        model.build((None,) + x_train.shape[1:4])
+        pretrain_path = Path.cwd() / 'ckpt' / args.pretrain_path
+        print('[INFO][main.py] Load weights from', pretrain_path)
+        model.load_weights(str(pretrain_path))
 
     # Get dataset 
     train_dataset, val_dataset, steps_per_epoch = data.get_data(args.dataset)
     print('[DEBUG][main.py] steps_per_epoch:', steps_per_epoch)
 
     # Config model for train
+    sgd = tf.keras.optimizers.SGD(
+            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
     model.compile(
             loss='categorical_crossentropy', optimizer=sgd,
             metrics=['accuracy'])
-    # model.compile(
-            # loss='categorical_crossentropy', optimizer=sgd,
-            # metrics=['accuracy'], run_eagerly = True)
 
     # Learning rate call back
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
@@ -168,3 +181,10 @@ if __name__ == '__main__':
                 reduce_lr,
                 NGalpha()],
             verbose=2)
+
+    # Save model 
+    current_dir = Path.cwd()
+    ckpt_dir = current_dir / 'ckpt' / args.ckpt_dir
+    ckpt_dir.mkdir(parents = True, exist_ok = True)
+    ckpt_path = ckpt_dir / args.ckpt_file
+    model.save_weights(str(ckpt_path))
