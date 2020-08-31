@@ -8,7 +8,6 @@ import os
 import pdb
 from main import (
         args, train_dataset_directory, val_dataset_directory, 
-        img_height, img_width
 )
 
 
@@ -43,11 +42,12 @@ def data_augment(x_train, y_train, x_test, y_test):
     datagen.fit(x_train)
     return datagen.flow(x_train, y_train, batch_size = args.batch_size), \
             (x_test, y_test), \
-            x_train.shape[0] // args.batch_size
+            x_train.shape[0] // args.batch_size, \
+            x_train.shape[1:4]
 
 
 # Especially for imagenet
-def get_img_label(log, dataset_directory):
+def get_img_label_train(log, dataset_directory):
     log_list = tf.strings.split(log)
     train_dataset_directory_tf = tf.constant(str(dataset_directory))
     file_path = tf.strings.join(
@@ -56,8 +56,30 @@ def get_img_label(log, dataset_directory):
     img = tf.io.read_file(file_path)
     img = tf.image.decode_jpeg(img, channels = 3)
     # Normalization
-    img = tf.image.resize(img, [img_height, img_width])
-    img = tf.div(tf.add(tf.to_float(img), -127), 128)
+    img = tf.image.resize(img, [256, 256])
+    # img = tf.div(tf.add(tf.to_float(img), -127), 128)
+    img = tf.math.divide(tf.math.add(tf.cast(img, tf.float32), -127), 128)
+
+    img = tf.image.random_crop(img, [221, 221, 3])
+    img = tf.image.resize(img, [224, 224])
+    img = tf.image.random_flip_left_right(img)
+    return img, tf.strings.to_number(log_list[1], tf.int32)
+
+
+def get_img_label_val(log, dataset_directory):
+    log_list = tf.strings.split(log)
+    train_dataset_directory_tf = tf.constant(str(dataset_directory))
+    file_path = tf.strings.join(
+            [train_dataset_directory_tf, log_list[0]], separator = os.path.sep)
+    # img = tf.io.read_file(str(file_path))
+    img = tf.io.read_file(file_path)
+    img = tf.image.decode_jpeg(img, channels = 3)
+    # Normalization
+    img = tf.image.resize(img, [256, 256])
+    # img = tf.math.div(tf.math.add(tf.to_float(img), -127), 128)
+    img = tf.math.divide(tf.math.add(tf.cast(img, tf.float32), -127), 128)
+
+    img = tf.image.resize_with_crop_or_pad(img, 224, 224)
     return img, tf.strings.to_number(log_list[1], tf.int32)
 
 
@@ -70,6 +92,15 @@ def configure_for_performance(ds, batch_size):
 
 
 def get_data(dataset):
+    '''
+    Args:
+        dataset: Name of dataset. String.
+    Returns:
+        Train dataset. tf.data.dataset or tuple.
+        Validation dataset. tf.data.dataset or tuple.
+        Steps per epoch.
+        Input tensor shape.
+    '''
     if dataset == 'cifar10':
         # The data, shuffled and split between train and test sets:
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -89,12 +120,12 @@ def get_data(dataset):
 
         # Convert text dataset to image dataset
         train_dataset = train_txt_dataset.map(
-                lambda x: get_img_label(x, train_dataset_directory),
+                lambda x: get_img_label_train(x, train_dataset_directory),
                 num_parallel_calls = AUTOTUNE)
         val_dataset   = val_txt_dataset.map(
-                lambda x: get_img_label(x, val_dataset_directory),
+                lambda x: get_img_label_val(x, val_dataset_directory),
                 num_parallel_calls = AUTOTUNE)
         batch_size = args.batch_size
         return configure_for_performance(train_dataset, batch_size), \
                 configure_for_performance(val_dataset, batch_size), \
-                None
+                None, (224, 224, 3)

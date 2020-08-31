@@ -77,8 +77,6 @@ train_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_train'
 val_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_val'
-img_height = 256
-img_width  = 256
 
 
 def lr_scheduler(epoch):
@@ -90,7 +88,9 @@ def lr_scheduler(epoch):
         # return 0.0001
     # else:
         # return 0.00001
-    return learning_rate * (0.5 ** (epoch // lr_drop))
+    # return learning_rate * (0.5 ** (epoch // lr_drop))
+    # return 0.
+    return 1e-5
 
 
 class NGalpha(tf.keras.callbacks.Callback):
@@ -147,16 +147,26 @@ if __name__ == '__main__':
     # Define CNN architecture
     model = importlib.import_module('.' + args.model, 'models').model 
 
+    # Get dataset 
+    train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
+            = data.get_data(args.dataset)
+    print('[DEBUG][main.py] steps_per_epoch:', steps_per_epoch)
+
     # Load weights
     if args.pretrain_path != None:
-        model.build((None,) + x_train.shape[1:4])
+        # model.build((None,) + x_train.shape[1:4])
+        model.build((None,) + input_tensor_shape)
         pretrain_path = Path.cwd() / 'ckpt' / args.pretrain_path
         print('[INFO][main.py] Load weights from', pretrain_path)
         model.load_weights(str(pretrain_path))
 
-    # Get dataset 
-    train_dataset, val_dataset, steps_per_epoch = data.get_data(args.dataset)
-    print('[DEBUG][main.py] steps_per_epoch:', steps_per_epoch)
+    # # Test evaluate
+    # y_pred = model.predict(x_test)
+    # m = tf.keras.metrics.Accuracy()
+    # m.update_state(np.argmax(y_pred,1), np.argmax(y_test,1))
+    # pred_accuracy = m.result().numpy()
+    # print('[INFO][main.py] predict accuracy:', pred_accuracy)
+    # pdb.set_trace()
 
     # Config model for train
     sgd = tf.keras.optimizers.SGD(
