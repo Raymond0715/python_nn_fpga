@@ -31,6 +31,8 @@ class VGGUnit(tf.keras.layers.Layer):
                 quantilize   = self.quantilize,
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
+                weight_decay = weight_decay,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn = BatchNormalization()
 
@@ -128,6 +130,7 @@ class VGG16(tf.keras.Model):
 
         self.dense1 = Dense(
                 512,
+                use_bias = False,
                 kernel_regularizer = regularizers.l2(self.weight_decay))
         self.bn1 = BatchNormalization()
         self.dense2 = Dense(
