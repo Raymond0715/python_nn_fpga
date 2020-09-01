@@ -88,9 +88,9 @@ def lr_scheduler(epoch):
         # return 0.0001
     # else:
         # return 0.00001
-    # return learning_rate * (0.5 ** (epoch // lr_drop))
+    return learning_rate * (0.5 ** (epoch // lr_drop))
     # return 0.
-    return 1e-5
+    # return 1e-5
 
 
 class NGalpha(tf.keras.callbacks.Callback):
@@ -101,9 +101,13 @@ class NGalpha(tf.keras.callbacks.Callback):
         # self.model.alpha.assign(
                 # 1.0 / (math.e - 1.0) * \
                 # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0))
+        # self.model.alpha.assign(
+                # 0.5 / (math.e - 1.0) * \
+                # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
         self.model.alpha.assign(
-                0.5 / (math.e - 1.0) * \
-                (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
+                0.5 * math.log(
+                    float(epoch) / self.model.num_epochs * (math.e - 1) + 1) 
+                + 0.5)
                 
         # self.model.alpha[0] = 1.0
 
