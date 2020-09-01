@@ -56,6 +56,18 @@ def QuantilizeFnSTE(Wbit, Abit):
 
 
 def QuantilizeFnNG(Wbit, Abit):
+    def RoundPower2(x, k=4):
+        bound = tf.math.pow(2.0, k - 1)
+        min_val = tf.math.pow(2.0, -bound + 1.0)
+        s = tf.sign(x)
+        x = tf.clip_by_value(tf.math.abs(x), min_val, 1.0)
+        p = tf.round(tf.math.log(x) / tf.math.log(2.))
+        return s * tf.math.pow(2.0, p)
+
+    def CeilPower2(x):
+        p = tf.math.ceil(tf.math.log(x) / tf.math.log(2.))
+        return tf.math.pow(2.0, p)
+
     def QuantilizeWeight(w):
         if Wbit == 1:   # BNN
             # mean = tf.reduce_mean(tf.abs(w))
