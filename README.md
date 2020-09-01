@@ -44,7 +44,7 @@ example:
 ```sh
 python main.py \
 	--model resnet20 \
-	--pretrain_path ckpt/resnet20_cifar10/
+	--pretrain_path resnet20_cifar10/ste.h5 \
 	--class_num 10 \
 	--dataset cifar10 \
 	--quantilize ste \
@@ -59,7 +59,7 @@ python main.py \
 
 python main.py \
 	--model vgg16 \
-	--pretrain_path ckpt/vgg16/
+	--pretrain_path vgg16_cifar10/ng_alpha_0.5c.h5 \
 	--class_num 10 \
 	--dataset cifar10 \
 	--quantilize ste \
