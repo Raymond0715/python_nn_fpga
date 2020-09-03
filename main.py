@@ -27,6 +27,9 @@ parser.add_argument(
         '--dataset', default = 'cifar10', 
         help = 'Dataset.')
 parser.add_argument(
+        '--mode', default = 'fit',
+        help = 'Choose train function. Must be one of `fit` and `custom`.')
+parser.add_argument(
         '--quantilize', default = 'full',
         help = 'Quantilization mode. Must be one of full, ste and ng. When full'
         'is set, quantilze_w and quantilize_x will be useless.')
@@ -72,12 +75,19 @@ lr_decay = 1e-6
 learning_rate = args.learning_rate
 batch_size = args.batch_size
 num_epochs = args.num_epochs
+loss_object = tf.keras.losses.CategoricalCrossentropy(from_logits = True)
+test_accuracy = tf.keras.metrics.Accuracy()
 # Especially for imagenet
 train_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_train'
 val_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_val'
 
+# def grad(model, inputs, targets):
+    # with tf.GradientTape() as tape:
+        # y_ = model(inputs, training = True)
+        # loss_value = loss_object(y_true = targets, y_pred = y_)
+    # return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 def lr_scheduler(epoch):
     # if epoch < 80:
@@ -88,9 +98,9 @@ def lr_scheduler(epoch):
         # return 0.0001
     # else:
         # return 0.00001
-    # return learning_rate * (0.5 ** (epoch // lr_drop))
+    return learning_rate * (0.5 ** (epoch // lr_drop))
     # return 0.
-    return 1e-4
+    # return 1e-5
 
 
 class NGalpha(tf.keras.callbacks.Callback):
@@ -154,7 +164,6 @@ if __name__ == '__main__':
     # Get dataset 
     train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
             = data.get_data(args.dataset)
-    print('[DEBUG][main.py] steps_per_epoch:', steps_per_epoch)
 
     # Load weights
     if args.pretrain_path != None:
@@ -173,32 +182,65 @@ if __name__ == '__main__':
     # pdb.set_trace()
 
     # Config model for train
-    # sgd = tf.keras.optimizers.SGD(
-            # lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
-    # model.compile(
-            # loss='categorical_crossentropy', optimizer=sgd,
-            # metrics=['accuracy'])
-    adam = tf.keras.optimizers.Adam(lr = learning_rate)
+    sgd = tf.keras.optimizers.SGD(
+            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
     model.compile(
-            loss='categorical_crossentropy', optimizer=adam,
+            loss='categorical_crossentropy', optimizer=sgd,
             metrics=['accuracy'])
+    # adam = tf.keras.optimizers.Adam(lr = learning_rate)
+    # model.compile(
+            # loss='categorical_crossentropy', optimizer=adam,
+            # metrics=['accuracy'])
 
     # Learning rate call back
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
 
-    # training process in a for loop with learning rate drop every 20 epoches.
-    historytemp = model.fit(
-            # datagen.flow(x_train, y_train, batch_size = batch_size), 
-            train_dataset,
-            # steps_per_epoch=x_train.shape[0] // batch_size, 
-            steps_per_epoch=steps_per_epoch, 
-            epochs=num_epochs, 
-            # validation_data=(x_test, y_test),
-            validation_data=val_dataset,
-            callbacks=[
-                reduce_lr,
-                NGalpha()],
-            verbose=2)
+    # Training
+    if args.mode == 'fit':
+        historytemp = model.fit(
+                # datagen.flow(x_train, y_train, batch_size = batch_size), 
+                train_dataset,
+                # steps_per_epoch=x_train.shape[0] // batch_size, 
+                steps_per_epoch=steps_per_epoch, 
+                epochs=num_epochs, 
+                # validation_data=(x_test, y_test),
+                validation_data=val_dataset,
+                callbacks=[
+                    reduce_lr,
+                    NGalpha()],
+                verbose=2)
+    elif args.mode == 'custom':
+        print('[INFO][main.py] Start training')
+        for epoch in range(num_epochs):
+            print('[INFO][main.py] Epoch', epoch)
+            # Train
+            epoch_loss_avg = tf.keras.metrics.Mean()
+            epoch_accuracy = tf.keras.metrics.CategoricalAccuracy()
+            count = 0
+            for x, y in train_dataset:
+                if steps_per_epoch != None and count > steps_per_epoch:
+                    break
+                count =  count + 1
+                print('[DEBUG][main.py] count:', count)
+                with tf.GradientTape() as tape:
+                    y_ = model(x, training = True)
+                    loss_value = loss_object(y_true = y, y_pred = y_)
+                grads = tape.gradient(loss_value, model.trainable_variables)
+                sgd.apply_gradients(zip(grads, model.trainable_variables))
+                epoch_loss_avg.update_state(loss_value)
+                epoch_accuracy.update_state(y, y_)
+
+            # End epoch 
+            train_loss_results.append(epoch_loss_avg.result())
+            train_accuracy_results.append(epoch_accuracy.results())
+
+            for i in range(len(val_dataset[0])):
+                pdb.set_trace()
+                logits = model(val_dataset[0][i], training = False)
+                prediction = tf.argmax(logits, axis = 1, output_type = tf.int32)
+                test_accuracy(prediction, val_dataset[1][i])
+    else:
+        print('[ERROR][main.py] Wrong args.model!!!')
 
     # Save model 
     current_dir = Path.cwd()
