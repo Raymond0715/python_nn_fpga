@@ -211,6 +211,8 @@ if __name__ == '__main__':
                 verbose=2)
     elif args.mode == 'custom':
         print('[INFO][main.py] Start training')
+        train_loss_results = []
+        train_accuracy_results = []
         for epoch in range(num_epochs):
             print('[INFO][main.py] Epoch', epoch)
             # Train
@@ -218,10 +220,10 @@ if __name__ == '__main__':
             epoch_accuracy = tf.keras.metrics.CategoricalAccuracy()
             count = 0
             for x, y in train_dataset:
+                count =  count + 1
                 if steps_per_epoch != None and count > steps_per_epoch:
                     break
-                count =  count + 1
-                print('[DEBUG][main.py] count:', count)
+                # print('[DEBUG][main.py] count:', count)
                 with tf.GradientTape() as tape:
                     y_ = model(x, training = True)
                     loss_value = loss_object(y_true = y, y_pred = y_)
@@ -232,13 +234,21 @@ if __name__ == '__main__':
 
             # End epoch 
             train_loss_results.append(epoch_loss_avg.result())
-            train_accuracy_results.append(epoch_accuracy.results())
+            train_accuracy_results.append(epoch_accuracy.result())
 
             for i in range(len(val_dataset[0])):
-                pdb.set_trace()
                 logits = model(val_dataset[0][i], training = False)
                 prediction = tf.argmax(logits, axis = 1, output_type = tf.int32)
                 test_accuracy(prediction, val_dataset[1][i])
+                val_loss_value = loss_object(
+                        y_true = val_dataset[1][i], 
+                        y_pred = logits)
+
+            print('Epoch {:03d}:'.format(epoch), end = '')
+            print('Train Loss: {:.3f}, Train Accuracy: {:.3f%}'.format(
+                epoch_loss_avg.result(), epoch_accuracy.result()), end = '')
+            print('Val Loss: {:.3f}, Val Accuracy: {:.3f%}'.format(
+                prediction, val_loss_value))
     else:
         print('[ERROR][main.py] Wrong args.model!!!')
 

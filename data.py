@@ -33,6 +33,7 @@ def data_augment(x_train, y_train, x_test, y_test):
 
     y_train = tf.keras.utils.to_categorical(y_train, args.class_num)
     y_test  = tf.keras.utils.to_categorical(y_test, args.class_num)
+    pdb.set_trace()
 
     datagen = tf.keras.preprocessing.image.ImageDataGenerator( 
             width_shift_range = 0.1, 
@@ -66,6 +67,7 @@ def get_img_label_train(log, dataset_directory):
     return img, tf.strings.to_number(log_list[1], tf.int32)
 
 
+# Especially for imagenet
 def get_img_label_val(log, dataset_directory):
     log_list = tf.strings.split(log)
     train_dataset_directory_tf = tf.constant(str(dataset_directory))
