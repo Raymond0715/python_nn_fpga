@@ -103,4 +103,8 @@ def QuantilizeFnNG(Wbit, Abit):
 
 def tangent(x, x_quantilize, alpha):
     # print('[DEBUG][quantization.py] alpha:', alpha)
-    return x - (x - x_quantilize) * alpha.value()
+    # return x - (x - x_quantilize) * alpha.value()
+    filters = \
+            (1.0 - alpha) * (x - 0.1 * tf.math.tanh(x - x_quantilize)) \
+            + x_quantilize
+    return filters

@@ -88,9 +88,9 @@ def lr_scheduler(epoch):
         # return 0.0001
     # else:
         # return 0.00001
-    # return learning_rate * (0.5 ** (epoch // lr_drop))
+    return learning_rate * (0.5 ** (epoch // lr_drop))
     # return 0.
-    return 1e-4
+    # return 1e-4
 
 
 class NGalpha(tf.keras.callbacks.Callback):
@@ -101,18 +101,20 @@ class NGalpha(tf.keras.callbacks.Callback):
         # self.model.alpha.assign(
                 # 1.0 / (math.e - 1.0) * \
                 # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0))
-        self.model.alpha.assign(
-                0.5 / (math.e - 1.0) * \
-                (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
+        # self.model.alpha.assign(
+                # 0.5 / (math.e - 1.0) * \
+                # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
         # self.model.alpha.assign(
                 # 0.5 * math.log(
                     # float(epoch) / self.model.num_epochs * (math.e - 1) + 1) 
                 # + 0.5)
+        self.model.alpha.assign(float(epoch) / num_epochs)
                 
         # self.model.alpha[0] = 1.0
 
     def on_test_begin(self, logs = None):
         # self.model.alpha[0] = 1.0
+        # self.model.alpha.assign(1.0)
         self.model.alpha.assign(1.0)
         # pass
         # print('[INFO][main.py] test alpha:', self.model.alpha.)
@@ -173,15 +175,19 @@ if __name__ == '__main__':
     # pdb.set_trace()
 
     # Config model for train
-    # sgd = tf.keras.optimizers.SGD(
-            # lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+    sgd = tf.keras.optimizers.SGD(
+            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+    model.compile(
+            loss='categorical_crossentropy', optimizer=sgd,
+            metrics=['accuracy'])
     # model.compile(
             # loss='categorical_crossentropy', optimizer=sgd,
+            # metrics=['accuracy'], run_eagerly = True)
+
+    # adam = tf.keras.optimizers.Adam(lr = learning_rate)
+    # model.compile(
+            # loss='categorical_crossentropy', optimizer=adam,
             # metrics=['accuracy'])
-    adam = tf.keras.optimizers.Adam(lr = learning_rate)
-    model.compile(
-            loss='categorical_crossentropy', optimizer=adam,
-            metrics=['accuracy'])
 
     # Learning rate call back
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
