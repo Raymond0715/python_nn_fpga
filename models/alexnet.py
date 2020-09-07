@@ -11,6 +11,7 @@ class AlexNet(tf.keras.Model):
     def __init__(
             self,
             weight_decay,
+            class_num,
             quantilize   = 'full',
             quantilize_w = 32,
             quantilize_x = 32,
@@ -21,7 +22,7 @@ class AlexNet(tf.keras.Model):
         self.quantilize   = quantilize 
         self.quantilize_w = quantilize_w
         self.quantilize_x = quantilize_x 
-        self.alpha        = 0
+        self.alpha        = tf.Variable(0., trainable = False)
         self.num_epochs   = num_epochs
 
         self.conv1 = QConv2D(
@@ -31,7 +32,7 @@ class AlexNet(tf.keras.Model):
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn1 = BatchNormalization()
         self.conv2 = QConv2D(
@@ -40,7 +41,7 @@ class AlexNet(tf.keras.Model):
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn2 = BatchNormalization()
         self.conv3 = QConv2D(
@@ -49,7 +50,7 @@ class AlexNet(tf.keras.Model):
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn3 = BatchNormalization()
         self.conv4 = QConv2D(
@@ -58,7 +59,7 @@ class AlexNet(tf.keras.Model):
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn4 = BatchNormalization()
         self.conv5 = QConv2D(
@@ -67,17 +68,17 @@ class AlexNet(tf.keras.Model):
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn5 = BatchNormalization()
         self.conv6 = QConv2D(
                 4096, 5,
-                padding      = 'VALID'
+                padding      = 'VALID',
                 quantilize   = self.quantilize,
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn6 = BatchNormalization()
         self.conv7 = QConv2D(
@@ -86,17 +87,17 @@ class AlexNet(tf.keras.Model):
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn7 = BatchNormalization()
         self.conv8 = QConv2D(
-                1000, 1,
+                class_num, 1,
                 # quantilize   = self.quantilize,
                 quantilize   = 'full',
                 quantilize_w = self.quantilize_w, 
                 quantilize_x = self.quantilize_x,
                 weight_decay = weight_decay,
-                bias         = False,
+                use_bias     = False,
                 alpha        = self.alpha)
         self.bn8 = BatchNormalization()
 
@@ -135,8 +136,18 @@ class AlexNet(tf.keras.Model):
 
         x = self.conv8(x)
         x = self.bn8(x)
-        x = Flatten(x)
+        x = Flatten()(x)
 
         return Activation('softmax')(x)
 
+class_num    = args.class_num
+quantilize   = args.quantilize
+quantilize_w = args.quantilize_w
+quantilize_x = args.quantilize_x
+weight_decay = args.weight_decay
+num_epochs   = args.num_epochs
 
+model = AlexNet(
+        weight_decay, class_num, quantilize = quantilize,
+        quantilize_w = quantilize_w, quantilize_x = quantilize_x, 
+        num_epochs = num_epochs)

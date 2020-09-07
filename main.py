@@ -187,9 +187,18 @@ if __name__ == '__main__':
     # Config model for train
     sgd = tf.keras.optimizers.SGD(
             lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
-    model.compile(
-            loss='categorical_crossentropy', optimizer=sgd,
-            metrics=['accuracy'])
+    if args.dataset == 'cifar10' or args.dataset == 'cifar100':
+        model.compile(
+                loss='categorical_crossentropy', optimizer=sgd,
+                metrics=['accuracy'])
+    elif args.dataset == 'imagenet':
+        model.compile(
+                loss='sparse_categorical_crossentropy', optimizer=sgd,
+                metrics=['accuracy'])
+    else:
+        print('[ERROR][data.py] Wrong dataset!!!')
+        quit()
+
     # adam = tf.keras.optimizers.Adam(lr = learning_rate)
     # model.compile(
             # loss='categorical_crossentropy', optimizer=adam,
@@ -260,6 +269,7 @@ if __name__ == '__main__':
                 prediction, val_loss_value))
     else:
         print('[ERROR][main.py] Wrong args.model!!!')
+        quit()
 
     # Save model 
     current_dir = Path.cwd()
