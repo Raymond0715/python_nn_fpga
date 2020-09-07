@@ -8,6 +8,7 @@ import numpy as np
 import argparse
 import importlib
 import csv
+import datetime
 import pdb
 
 
@@ -76,7 +77,7 @@ learning_rate = args.learning_rate
 batch_size = args.batch_size
 num_epochs = args.num_epochs
 loss_object = tf.keras.losses.CategoricalCrossentropy(from_logits = True)
-test_accuracy = tf.keras.metrics.Accuracy()
+test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 # Especially for imagenet
 train_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_train'
@@ -163,7 +164,7 @@ if __name__ == '__main__':
 
     # Get dataset 
     train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
-            = data.get_data(args.dataset)
+            = data.GetData(args.dataset)
 
     # Load weights
     if args.pretrain_path != None:
@@ -214,16 +215,11 @@ if __name__ == '__main__':
         train_loss_results = []
         train_accuracy_results = []
         for epoch in range(num_epochs):
-            print('[INFO][main.py] Epoch', epoch)
+            start_time = datetime.datetime.now()
             # Train
             epoch_loss_avg = tf.keras.metrics.Mean()
             epoch_accuracy = tf.keras.metrics.CategoricalAccuracy()
-            count = 0
             for x, y in train_dataset:
-                count =  count + 1
-                if steps_per_epoch != None and count > steps_per_epoch:
-                    break
-                # print('[DEBUG][main.py] count:', count)
                 with tf.GradientTape() as tape:
                     y_ = model(x, training = True)
                     loss_value = loss_object(y_true = y, y_pred = y_)
@@ -236,18 +232,29 @@ if __name__ == '__main__':
             train_loss_results.append(epoch_loss_avg.result())
             train_accuracy_results.append(epoch_accuracy.result())
 
-            for i in range(len(val_dataset[0])):
-                logits = model(val_dataset[0][i], training = False)
-                prediction = tf.argmax(logits, axis = 1, output_type = tf.int32)
-                test_accuracy(prediction, val_dataset[1][i])
+            # for i in range(len(val_dataset[0])):
+            for (x, y) in val_dataset:
+                logits = model(x, training = False)
+                prediction = tf.argmax(
+                        logits, axis = 1, output_type = tf.int32)
+                test_accuracy(prediction, y)
                 val_loss_value = loss_object(
-                        y_true = val_dataset[1][i], 
+                        y_true = y, 
                         y_pred = logits)
 
+            end_time = datetime.datetime.now()
+            delta_time = end_time - start_time
             print('Epoch {:03d}:'.format(epoch), end = '')
-            print('Train Loss: {:.3f}, Train Accuracy: {:.3f%}'.format(
-                epoch_loss_avg.result(), epoch_accuracy.result()), end = '')
-            print('Val Loss: {:.3f}, Val Accuracy: {:.3f%}'.format(
+            print('Time {:.3f}, '.format(delta_time.total_seconds()), end = '')
+            # epoch_loss_avg_num = epoch_loss_avg.result().numpy()
+            # epoch_accuracy_num = epoch_accuracy.result().numpy()
+            print('Train Loss: {:.3f}, Train Accuracy: {:.3f}%, '.format(
+                epoch_loss_avg.result().numpy(), 
+                epoch_accuracy.result().numpy()), end = '')
+            # print('Train Loss: {:.3f}, Train Accuracy: {:.3f}%, '.format(
+                # epoch_loss_avg_num, epoch_accuracy_num), end = '')
+            pdb.set_trace()
+            print('Val Loss: {:.3f}, Val Accuracy: {:.3f}%'.format(
                 prediction, val_loss_value))
     else:
         print('[ERROR][main.py] Wrong args.model!!!')

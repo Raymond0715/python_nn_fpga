@@ -47,6 +47,7 @@ python main.py \
 	--pretrain_path resnet20_cifar10/ste.h5 \
 	--class_num 10 \
 	--dataset cifar10 \
+	--mode fit \
 	--quantilize ste \
 	--quantilize_w 1 \
 	--quantilize_x 1 \
@@ -62,6 +63,7 @@ python main.py \
 	--pretrain_path vgg16_cifar10/ng_alpha_0.5c.h5 \
 	--class_num 10 \
 	--dataset cifar10 \
+	--mode fit \
 	--quantilize ste \
 	--quantilize_w 1 \
 	--quantilize_x 1 \
