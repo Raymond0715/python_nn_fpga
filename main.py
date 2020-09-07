@@ -8,6 +8,7 @@ import numpy as np
 import argparse
 import importlib
 import csv
+import datetime
 import pdb
 
 
@@ -26,6 +27,9 @@ parser.add_argument(
 parser.add_argument(
         '--dataset', default = 'cifar10', 
         help = 'Dataset.')
+parser.add_argument(
+        '--mode', default = 'fit',
+        help = 'Choose train function. Must be one of `fit` and `custom`.')
 parser.add_argument(
         '--quantilize', default = 'full',
         help = 'Quantilization mode. Must be one of full, ste and ng. When full'
@@ -72,12 +76,19 @@ lr_decay = 1e-6
 learning_rate = args.learning_rate
 batch_size = args.batch_size
 num_epochs = args.num_epochs
+loss_object = tf.keras.losses.CategoricalCrossentropy(from_logits = True)
+test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 # Especially for imagenet
 train_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_train'
 val_dataset_directory = \
         Path('/mnt') / 'ILSVRC2012' / 'ILSVRC2012_img_val'
 
+# def grad(model, inputs, targets):
+    # with tf.GradientTape() as tape:
+        # y_ = model(inputs, training = True)
+        # loss_value = loss_object(y_true = targets, y_pred = y_)
+    # return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 def lr_scheduler(epoch):
     # if epoch < 80:
@@ -155,8 +166,7 @@ if __name__ == '__main__':
 
     # Get dataset 
     train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
-            = data.get_data(args.dataset)
-    print('[DEBUG][main.py] steps_per_epoch:', steps_per_epoch)
+            = data.GetData(args.dataset)
 
     # Load weights
     if args.pretrain_path != None:
@@ -180,10 +190,6 @@ if __name__ == '__main__':
     model.compile(
             loss='categorical_crossentropy', optimizer=sgd,
             metrics=['accuracy'])
-    # model.compile(
-            # loss='categorical_crossentropy', optimizer=sgd,
-            # metrics=['accuracy'], run_eagerly = True)
-
     # adam = tf.keras.optimizers.Adam(lr = learning_rate)
     # model.compile(
             # loss='categorical_crossentropy', optimizer=adam,
@@ -192,19 +198,68 @@ if __name__ == '__main__':
     # Learning rate call back
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
 
-    # training process in a for loop with learning rate drop every 20 epoches.
-    historytemp = model.fit(
-            # datagen.flow(x_train, y_train, batch_size = batch_size), 
-            train_dataset,
-            # steps_per_epoch=x_train.shape[0] // batch_size, 
-            steps_per_epoch=steps_per_epoch, 
-            epochs=num_epochs, 
-            # validation_data=(x_test, y_test),
-            validation_data=val_dataset,
-            callbacks=[
-                reduce_lr,
-                NGalpha()],
-            verbose=2)
+    # Training
+    if args.mode == 'fit':
+        historytemp = model.fit(
+                # datagen.flow(x_train, y_train, batch_size = batch_size), 
+                train_dataset,
+                # steps_per_epoch=x_train.shape[0] // batch_size, 
+                steps_per_epoch=steps_per_epoch, 
+                epochs=num_epochs, 
+                # validation_data=(x_test, y_test),
+                validation_data=val_dataset,
+                callbacks=[
+                    reduce_lr,
+                    NGalpha()],
+                verbose=2)
+    elif args.mode == 'custom':
+        print('[INFO][main.py] Start training')
+        train_loss_results = []
+        train_accuracy_results = []
+        for epoch in range(num_epochs):
+            start_time = datetime.datetime.now()
+            # Train
+            epoch_loss_avg = tf.keras.metrics.Mean()
+            epoch_accuracy = tf.keras.metrics.CategoricalAccuracy()
+            for x, y in train_dataset:
+                with tf.GradientTape() as tape:
+                    y_ = model(x, training = True)
+                    loss_value = loss_object(y_true = y, y_pred = y_)
+                grads = tape.gradient(loss_value, model.trainable_variables)
+                sgd.apply_gradients(zip(grads, model.trainable_variables))
+                epoch_loss_avg.update_state(loss_value)
+                epoch_accuracy.update_state(y, y_)
+
+            # End epoch 
+            train_loss_results.append(epoch_loss_avg.result())
+            train_accuracy_results.append(epoch_accuracy.result())
+
+            # for i in range(len(val_dataset[0])):
+            for (x, y) in val_dataset:
+                logits = model(x, training = False)
+                prediction = tf.argmax(
+                        logits, axis = 1, output_type = tf.int32)
+                test_accuracy(prediction, y)
+                val_loss_value = loss_object(
+                        y_true = y, 
+                        y_pred = logits)
+
+            end_time = datetime.datetime.now()
+            delta_time = end_time - start_time
+            print('Epoch {:03d}:'.format(epoch), end = '')
+            print('Time {:.3f}, '.format(delta_time.total_seconds()), end = '')
+            # epoch_loss_avg_num = epoch_loss_avg.result().numpy()
+            # epoch_accuracy_num = epoch_accuracy.result().numpy()
+            print('Train Loss: {:.3f}, Train Accuracy: {:.3f}%, '.format(
+                epoch_loss_avg.result().numpy(), 
+                epoch_accuracy.result().numpy()), end = '')
+            # print('Train Loss: {:.3f}, Train Accuracy: {:.3f}%, '.format(
+                # epoch_loss_avg_num, epoch_accuracy_num), end = '')
+            pdb.set_trace()
+            print('Val Loss: {:.3f}, Val Accuracy: {:.3f}%'.format(
+                prediction, val_loss_value))
+    else:
+        print('[ERROR][main.py] Wrong args.model!!!')
 
     # Save model 
     current_dir = Path.cwd()
