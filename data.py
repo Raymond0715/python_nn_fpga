@@ -66,9 +66,9 @@ def DataAugment(x_train, y_train, x_test, y_test):
 
 
 # Especially for imagenet
-def GetImgLabelTrain(log, dataset_directory):
+def GetImgLabelTrain(log):
     log_list = tf.strings.split(log)
-    train_dataset_directory_tf = tf.constant(str(dataset_directory))
+    train_dataset_directory_tf = tf.constant(str(train_dataset_directory))
     file_path = tf.strings.join(
             [train_dataset_directory_tf, log_list[0]], separator = os.path.sep)
     # img = tf.io.read_file(str(file_path))
@@ -86,11 +86,11 @@ def GetImgLabelTrain(log, dataset_directory):
 
 
 # Especially for imagenet
-def GetImgLabelVal(log, dataset_directory):
+def GetImgLabelVal(log):
     log_list = tf.strings.split(log)
-    train_dataset_directory_tf = tf.constant(str(dataset_directory))
+    val_dataset_directory_tf = tf.constant(str(val_dataset_directory))
     file_path = tf.strings.join(
-            [train_dataset_directory_tf, log_list[0]], separator = os.path.sep)
+            [val_dataset_directory_tf, log_list[0]], separator = os.path.sep)
     # img = tf.io.read_file(str(file_path))
     img = tf.io.read_file(file_path)
     img = tf.image.decode_jpeg(img, channels = 3)
@@ -139,12 +139,27 @@ def GetData(dataset):
         val_txt_dataset   = tf.data.TextLineDataset(str(val_label_path))
 
         # Convert text dataset to image dataset
-        train_dataset = train_txt_dataset.map(
-                lambda x: GetImgLabelTrain(x, train_dataset_directory),
-                num_parallel_calls = AUTOTUNE)
-        val_dataset   = val_txt_dataset.map(
-                lambda x: GetImgLabelVal(x, val_dataset_directory),
-                num_parallel_calls = AUTOTUNE)
+        # train_dataset = train_txt_dataset.map(
+                # lambda x: GetImgLabelTrain(x, train_dataset_directory),
+                # num_parallel_calls = AUTOTUNE)
+        # val_dataset   = val_txt_dataset.map(
+                # lambda x: GetImgLabelVal(x, val_dataset_directory),
+                # num_parallel_calls = AUTOTUNE)
+        # GetImgLabelTrainFn = \
+                # lambda x: GetImgLabelTrain(x, train_dataset_directory)
+        # GetImgLabelValFn = \
+                # lambda x: GetImgLabelVal(x, val_dataset_directory)
+
+        train_dataset = train_txt_dataset.interleave(
+                lambda x: train_txt_dataset.from_tensors(x).map( 
+                    GetImgLabelTrain,
+                    num_parallel_calls = AUTOTUNE),
+                cycle_length = AUTOTUNE)
+        val_dataset   = val_txt_dataset.interleave(
+                lambda x: val_txt_dataset.from_tensors(x).map( 
+                    GetImgLabelVal,
+                    num_parallel_calls = AUTOTUNE),
+                cycle_length = AUTOTUNE)
         batch_size = args.batch_size
         return ConfigureForPerformance(train_dataset, batch_size), \
                 ConfigureForPerformance(val_dataset, batch_size), \
