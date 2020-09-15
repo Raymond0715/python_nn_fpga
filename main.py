@@ -1,4 +1,6 @@
 import tensorflow as tf
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras.datasets import cifar100
 
 # from data import get_data
 import data
@@ -70,6 +72,14 @@ parser.add_argument(
 args = parser.parse_args()
 
 
+def normalize(X_train,X_test):
+    mean    = np.mean(X_train,axis=(0, 1, 2, 3))
+    std     = np.std(X_train, axis=(0, 1, 2, 3))
+    X_train = (X_train-mean)/(std+1e-7)
+    X_test  = (X_test-mean)/(std+1e-7)
+    return X_train, X_test
+
+
 # Param
 lr_drop = 20
 lr_decay = 1e-6
@@ -91,15 +101,15 @@ val_dataset_directory = \
     # return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 def lr_scheduler(epoch):
-    # if epoch < 80:
-        # return 0.1
-    # elif epoch < 140:
-        # return 0.01
-    # elif epoch < 200:
-        # return 0.0001
-    # else:
-        # return 0.00001
-    return learning_rate * (0.5 ** (epoch // lr_drop))
+    if epoch < 80:
+        return 0.1
+    elif epoch < 140:
+        return 0.01
+    elif epoch < 200:
+        return 0.001
+    else:
+        return 0.0001
+    # return learning_rate * (0.5 ** (epoch // lr_drop))
     # return 0.
     # return 1e-4
 
@@ -119,14 +129,14 @@ class NGalpha(tf.keras.callbacks.Callback):
                 # 0.5 * math.log(
                     # float(epoch) / self.model.num_epochs * (math.e - 1) + 1) 
                 # + 0.5)
-        self.model.alpha.assign(float(epoch) / num_epochs)
+        # self.model.alpha.assign(float(epoch) / num_epochs)
+        self.model.alpha.assign(1.0)
                 
-        # self.model.alpha[0] = 1.0
 
     def on_test_begin(self, logs = None):
         # self.model.alpha[0] = 1.0
         # self.model.alpha.assign(1.0)
-        self.model.alpha.assign(1.0)
+        self.model.alpha.assign(0.0)
         # pass
         # print('[INFO][main.py] test alpha:', self.model.alpha.)
         # self.model.alpha[0] = \
@@ -165,8 +175,36 @@ if __name__ == '__main__':
     model = importlib.import_module('.' + args.model, 'models').model 
 
     # Get dataset 
-    train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
-            = data.GetData(args.dataset)
+    # train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
+            # = data.GetData(args.dataset)
+    if args.dataset == 'cifar10':
+        # The data, shuffled and split between train and test sets:
+        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    elif args.dataset == 'cifar100':
+        # The data, shuffled and split between train and test sets:
+        (x_train, y_train), (x_test, y_test) = cifar100.load_data()
+
+    x_train = x_train.astype('float32')
+    x_test  = x_test.astype('float32')
+
+    # Normalization
+    x_train, x_test = normalize(x_train, x_test)
+
+    y_train = tf.keras.utils.to_categorical(y_train, args.class_num)
+    y_test  = tf.keras.utils.to_categorical(y_test, args.class_num)
+
+    datagen = tf.keras.preprocessing.image.ImageDataGenerator( 
+            # featurewise_center = True,
+            # featurewise_std_normalization = True,
+            width_shift_range = 0.1,  # randomly shift images horizontally (fraction of total width) 
+            height_shift_range = 0.1,  # randomly shift images vertically (fraction of total height) 
+            horizontal_flip = True,  # randomly flip images 
+            vertical_flip = False)  # randomly flip images
+    datagen.fit(x_train)
+
+    # model architecture
+    model = importlib.import_module(
+            '.' + args.model, 'models').model 
 
     # Load weights
     if args.pretrain_path != None:
@@ -175,14 +213,6 @@ if __name__ == '__main__':
         pretrain_path = Path.cwd() / 'ckpt' / args.pretrain_path
         print('[INFO][main.py] Load weights from', pretrain_path)
         model.load_weights(str(pretrain_path))
-
-    # # Test evaluate
-    # y_pred = model.predict(x_test)
-    # m = tf.keras.metrics.Accuracy()
-    # m.update_state(np.argmax(y_pred,1), np.argmax(y_test,1))
-    # pred_accuracy = m.result().numpy()
-    # print('[INFO][main.py] predict accuracy:', pred_accuracy)
-    # pdb.set_trace()
 
     # Config model for train
     sgd = tf.keras.optimizers.SGD(
@@ -210,13 +240,13 @@ if __name__ == '__main__':
     # Training
     if args.mode == 'fit':
         historytemp = model.fit(
-                # datagen.flow(x_train, y_train, batch_size = batch_size), 
-                train_dataset,
-                # steps_per_epoch=x_train.shape[0] // batch_size, 
-                steps_per_epoch=steps_per_epoch, 
+                datagen.flow(x_train, y_train, batch_size = batch_size), 
+                # train_dataset,
+                steps_per_epoch=x_train.shape[0] // batch_size, 
+                # steps_per_epoch=steps_per_epoch, 
                 epochs=num_epochs, 
-                # validation_data=(x_test, y_test),
-                validation_data=val_dataset,
+                validation_data=(x_test, y_test),
+                # validation_data=val_dataset,
                 callbacks=[
                     reduce_lr,
                     NGalpha()],

@@ -4,7 +4,7 @@ from tensorflow.keras.layers import MaxPooling2D, BatchNormalization
 from tensorflow.keras import regularizers
 
 from nn_utils import QConv2D
-from quantization import QuantilizeFnSTE, QuantilizeFnNG
+from quantization import QuantilizeFn
 from main import args
 
 '''
@@ -56,8 +56,8 @@ class ResnetUnitL2(tf.keras.layers.Layer):
         if self.first:
             self.conv_shortcut = QConv2D(
                     outputs_depth, 1, strides, 
-                    # quantilize   = self.quantilize, 
-                    quantilize   = 'full', 
+                    quantilize   = self.quantilize, 
+                    # quantilize   = 'full', 
                     quantilize_w = self.quantilize_w,
                     quantilize_x = self.quantilize_x,
                     weight_decay = weight_decay, 
@@ -118,7 +118,7 @@ class ResnetBlockL2(tf.keras.layers.Layer):
         self.units.append(
                 ResnetUnitL2(
                     outputs_depth, strides = strides, first = True, 
-                    quantilize   = quantilize, 
+                    quantilize   = self.quantilize, 
                     quantilize_w = self.quantilize_w,
                     quantilize_x = self.quantilize_x,
                     weight_decay = weight_decay,
