@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import regularizers
-from quantization import QuantilizeFnSTE, QuantilizeFnNG, tangent
+from quantization import QuantilizeFn, tangent
 import pdb
 
 class QConv2D(tf.keras.layers.Layer):
@@ -26,14 +26,9 @@ class QConv2D(tf.keras.layers.Layer):
         self.quantilize = quantilize
         self.weight_decay = weight_decay
         self.use_bias = use_bias
-        if self.quantilize == 'ste':
-            # print('[DEBUG][nn_utils.py] init QConv2D ste')
+        if self.quantilize != 'full':
             self.QuantilizeWeight, self.QuantilizeActivation = \
-                    QuantilizeFnSTE(quantilize_w, quantilize_x)
-        elif self.quantilize == 'ng':
-            # print('[DEBUG][nn_utils.py] init QConv2D ng')
-            self.QuantilizeWeight, self.QuantilizeActivation = \
-                    QuantilizeFnNG(quantilize_w, quantilize_x)
+                    QuantilizeFn(quantilize_w, quantilize_x)
             self.alpha = alpha # For nature gradient quantilization
         else:
             # print('[DEBUG][nn_utils.py] init QConv2D full')
@@ -59,12 +54,7 @@ class QConv2D(tf.keras.layers.Layer):
                     # initializer = tf.keras.initializers.Zeros())
         
     def call(self, input_tensor):
-        if self.quantilize == 'ste':
-            # print('[DEBUG][nn_utils.py] QConv2D call ste')
-            filters = tf.clip_by_value(self.filters, -1, 1)
-            filters = self.QuantilizeWeight(filters)
-            input_tensor = self.QuantilizeActivation(input_tensor)
-        elif self.quantilize == 'ng':
+        if self.quantilize != 'full':
             # print('[DEBUG][nn_utils.py] QConv2D call ng')
             filters = tf.clip_by_value(self.filters, -1, 1)
             quantize_filters = self.QuantilizeWeight(filters)
