@@ -220,11 +220,11 @@ if __name__ == '__main__':
     if args.dataset == 'cifar10' or args.dataset == 'cifar100':
         model.compile(
                 loss='categorical_crossentropy', optimizer=sgd,
-                metrics=['accuracy'])
+                metrics=['accuracy', 'top_k_categorical_accuracy'])
     elif args.dataset == 'imagenet':
         model.compile(
                 loss='sparse_categorical_crossentropy', optimizer=sgd,
-                metrics=['accuracy'])
+                metrics=['accuracy', 'top_k_categorical_accuracy'])
     else:
         print('[ERROR][data.py] Wrong dataset!!!')
         quit()
@@ -236,6 +236,8 @@ if __name__ == '__main__':
 
     # Learning rate call back
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
+    # model.build(tf.TensorShape([None, 32, 32, 3]))
+    # pdb.set_trace()
 
     # Training
     if args.mode == 'fit':
