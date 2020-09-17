@@ -217,7 +217,7 @@ if __name__ == '__main__':
 
     # Config model for train
     sgd = tf.keras.optimizers.SGD(
-            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=False)
     if args.dataset == 'cifar10' or args.dataset == 'cifar100':
         model.compile(
                 loss='categorical_crossentropy', optimizer=sgd,
