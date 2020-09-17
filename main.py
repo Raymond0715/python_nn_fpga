@@ -130,7 +130,8 @@ class NGalpha(tf.keras.callbacks.Callback):
                     # float(epoch) / self.model.num_epochs * (math.e - 1) + 1) 
                 # + 0.5)
         # self.model.alpha.assign(float(epoch) / num_epochs)
-        self.model.alpha.assign(1.0)
+        # self.model.alpha.assign(1.0)
+        self.model.alpha.assign(0.0)
                 
 
     def on_test_begin(self, logs = None):
