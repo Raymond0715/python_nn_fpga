@@ -12,6 +12,7 @@ import importlib
 import csv
 import datetime
 import pdb
+import sys
 
 
 # Argument
@@ -130,9 +131,17 @@ class NGalpha(tf.keras.callbacks.Callback):
                     # float(epoch) / self.model.num_epochs * (math.e - 1) + 1) 
                 # + 0.5)
         # self.model.alpha.assign(float(epoch) / num_epochs)
-        # self.model.alpha.assign(1.0)
-        self.model.alpha.assign(0.0)
-                
+
+        if args.quantilize == 'ste':
+            self.model.alpha.assign(0.0)
+        elif args.quantilize == 'ng':
+            self.model.alpha.assign(1.0)
+        elif args.quantilize == 'full':
+            pass
+        else:
+            print('[ERROR][main.py] Wrong quantilize param!!!')
+            sys.exit()
+
 
     def on_test_begin(self, logs = None):
         # self.model.alpha[0] = 1.0
@@ -222,6 +231,10 @@ if __name__ == '__main__':
         model.compile(
                 loss='categorical_crossentropy', optimizer=sgd,
                 metrics=['accuracy', 'top_k_categorical_accuracy'])
+        # model.compile(
+                # loss='categorical_crossentropy', optimizer=sgd,
+                # metrics=['accuracy', 'top_k_categorical_accuracy'], 
+                # run_eagerly = True)
     elif args.dataset == 'imagenet':
         model.compile(
                 loss='sparse_categorical_crossentropy', optimizer=sgd,
