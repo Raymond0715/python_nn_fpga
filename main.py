@@ -108,8 +108,20 @@ def lr_scheduler(epoch):
         return 0.01
     elif epoch < 200:
         return 0.001
+    # elif epoch < 230:
+        # return 0.0001
+    # else:
+        # return 0.00001
     else:
         return 0.0001
+
+    # if epoch < 80:
+        # return 0.1
+    # elif epoch < 120:
+        # return 0.01
+    # else:
+        # return 0.001
+
     # return learning_rate * (0.5 ** (epoch // lr_drop))
     # return 0.
     # return 1e-4
@@ -135,7 +147,8 @@ class NGalpha(tf.keras.callbacks.Callback):
         if args.quantilize == 'ste':
             self.model.alpha.assign(0.0)
         elif args.quantilize == 'ng':
-            self.model.alpha.assign(1.0)
+            # self.model.alpha.assign(1.0)
+            self.model.alpha.assign(0.5)
         elif args.quantilize == 'full':
             pass
         else:
@@ -226,7 +239,7 @@ if __name__ == '__main__':
 
     # Config model for train
     sgd = tf.keras.optimizers.SGD(
-            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=False)
+            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
     if args.dataset == 'cifar10' or args.dataset == 'cifar100':
         model.compile(
                 loss='categorical_crossentropy', optimizer=sgd,
