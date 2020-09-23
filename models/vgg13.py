@@ -7,8 +7,7 @@ from main import args
 from models.vgg_utils import VGGBlock
 import pdb
 
-
-class VGG16(tf.keras.Model):
+class VGG13(tf.keras.Model):
     def __init__(
             self,
             weight_decay,
@@ -50,21 +49,21 @@ class VGG16(tf.keras.Model):
                 weight_decay = self.weight_decay,
                 alpha        = self.alpha)
         self.block3 = VGGBlock(
-                3, 256,
+                2, 256,
                 quantilize   = self.quantilize, 
                 quantilize_w = self.quantilize_w,
                 quantilize_x = self.quantilize_x,
                 weight_decay = self.weight_decay,
                 alpha        = self.alpha)
         self.block4 = VGGBlock(
-                3, 512,
+                2, 512,
                 quantilize   = self.quantilize, 
                 quantilize_w = self.quantilize_w,
                 quantilize_x = self.quantilize_x,
                 weight_decay = self.weight_decay,
                 alpha        = self.alpha)
         self.block5 = VGGBlock(
-                3, 512,
+                2, 512,
                 quantilize   = self.quantilize, 
                 quantilize_w = self.quantilize_w,
                 quantilize_x = self.quantilize_x,
@@ -104,7 +103,7 @@ quantilize_x = args.quantilize_x
 weight_decay = args.weight_decay
 num_epochs   = args.num_epochs
 
-model = VGG16(
+model = VGG13(
         weight_decay, class_num, quantilize = quantilize,
         quantilize_w = quantilize_w, quantilize_x = quantilize_x, 
         num_epochs = num_epochs)
