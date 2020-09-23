@@ -1,7 +1,8 @@
-from nn_utils import QConv2D
+import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import Activation
 
+from nn_utils import QConv2D
 
 # class VGGUnit(tf.keras.Model):
 class VGGUnit(tf.keras.layers.Layer):

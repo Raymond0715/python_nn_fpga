@@ -149,6 +149,7 @@ class NGalpha(tf.keras.callbacks.Callback):
         elif args.quantilize == 'ng':
             # self.model.alpha.assign(1.0)
             self.model.alpha.assign(0.5)
+            # self.model.alpha.assign(0.25)
         elif args.quantilize == 'full':
             pass
         else:

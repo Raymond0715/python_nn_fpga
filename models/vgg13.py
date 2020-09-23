@@ -17,7 +17,7 @@ class VGG13(tf.keras.Model):
             quantilize_x = 32,
             num_epochs   = 250):
 
-        super(VGG16, self).__init__(name = '')
+        super(VGG13, self).__init__(name = '')
         self.weight_decay = weight_decay
         self.quantilize   = quantilize
         self.quantilize_w = quantilize_w
