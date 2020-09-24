@@ -102,18 +102,31 @@ val_dataset_directory = \
     # return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 def lr_scheduler(epoch):
+    # if epoch < 80:
+        # return 0.1
+    # elif epoch < 140:
+        # return 0.01
+    # elif epoch < 200:
+        # return 0.001
+    # # elif epoch < 230:
+        # # return 0.0001
+    # # else:
+        # # return 0.00001
+    # else:
+        # return 0.0001
+
     if epoch < 80:
-        return 0.1
-    elif epoch < 140:
         return 0.01
-    elif epoch < 200:
+    elif epoch < 140:
         return 0.001
+    elif epoch < 200:
+        return 0.0001
     # elif epoch < 230:
         # return 0.0001
     # else:
         # return 0.00001
     else:
-        return 0.0001
+        return 0.00001
 
     # if epoch < 80:
         # return 0.1
