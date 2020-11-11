@@ -39,7 +39,7 @@ class QConv2D(tf.keras.layers.Layer):
                 shape = [ 
                     self.kernel_size,
                     self.kernel_size, 
-                    int(input_shape[-1]),                   
+                    int(input_shape[-1]),
                     self.kernel_depth],
                 initializer = tf.keras.initializers.GlorotUniform(),
                 regularizer = regularizers.l2(self.weight_decay),

@@ -1,5 +1,4 @@
 import tensorflow as tf
-import pdb
 
 def QuantilizeFn(Wbit, Abit):
 
@@ -9,14 +8,14 @@ def QuantilizeFn(Wbit, Abit):
 
         def Grad(dy):
             return dy
-        return output, Grad 
+        return output, Grad
 
     @tf.custom_gradient
     def QRound(x):
         output = tf.round(x)
 
         def Grad(dy):
-            return dy 
+            return dy
 
         return output, Grad
 
@@ -28,8 +27,8 @@ def QuantilizeFn(Wbit, Abit):
         min_val = -bound
         max_val = bound
         # ??? Is this round function correct
-        round = QRound(x * n) / n
-        clipped_value = tf.clip_by_value(round, min_val, max_val)
+        round_q = QRound(x * n) / n
+        clipped_value = tf.clip_by_value(round_q, min_val, max_val)
         return clipped_value
 
     # def RoundPower2(x, k=4):
@@ -53,9 +52,9 @@ def QuantilizeFn(Wbit, Abit):
         elif Wbit == 32:
             output = w
         else:   # QNN
-            max = tf.reduce_max(tf.abs(w))
-            w = w / max
-            output =  max * Round2Fixed(w, 1, Wbit)
+            maximum = tf.reduce_max(tf.abs(w))
+            w = w / maximum
+            output = maximum * Round2Fixed(w, 1, Wbit)
 
         return output
 
@@ -68,9 +67,9 @@ def QuantilizeFn(Wbit, Abit):
         elif Abit == 32:
             output = x
         else:   # QNN
-            max = tf.reduce_max(tf.abs(x))
-            x = x / max
-            output = max * Round2Fixed(x, 1, Abit)
+            maximum = tf.reduce_max(tf.abs(x))
+            x = x / maximum
+            output = maximum * Round2Fixed(x, 1, Abit)
 
         return output
 

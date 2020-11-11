@@ -74,6 +74,18 @@ python main.py \
 	--ckpt_file ste.h5 \
 	--device 0,1,2,3
 
+# For store random alexnet weight
+python main.py \
+	--model alexnet_fpga \
+	--class_num 1000 \
+	--dataset cifar10 \
+	--mode fit \
+	--quantilize full \
+	--weight_decay 0.0005 \
+	--log_dir test \
+	--log_file test.csv \
+	--ckpt_dir test \
+	--ckpt_file test.h5
 ```
 
 Besides, you can run `python main.py -h` for help. 

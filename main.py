@@ -143,7 +143,7 @@ def lr_scheduler(epoch):
 class NGalpha(tf.keras.callbacks.Callback):
     def __init__(self):
         super(NGalpha, self).__init__()
-        
+
     def on_epoch_begin(self, epoch, logs = None):
         # self.model.alpha.assign(
                 # 1.0 / (math.e - 1.0) * \
@@ -153,7 +153,7 @@ class NGalpha(tf.keras.callbacks.Callback):
                 # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
         # self.model.alpha.assign(
                 # 0.5 * math.log(
-                    # float(epoch) / self.model.num_epochs * (math.e - 1) + 1) 
+                    # float(epoch) / self.model.num_epochs * (math.e - 1) + 1)
                 # + 0.5)
         # self.model.alpha.assign(float(epoch) / num_epochs)
 
@@ -203,15 +203,15 @@ if __name__ == '__main__':
         # mirrored_strategy = tf.distribute.MirroredStrategy(devices = device_str)
 
     # with mirrored_strategy.scope():
-        # sgd = tf.keras.optimizers.SGD(
+        # optm = tf.keras.optimizers.SGD(
                 # lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
         # model = importlib.import_module(
-                # '.' + args.model, 'models').model 
+                # '.' + args.model, 'models').model
 
     # Define CNN architecture
-    model = importlib.import_module('.' + args.model, 'models').model 
+    model = importlib.import_module('.' + args.model, 'models').model
 
-    # Get dataset 
+    # Get dataset
     # train_dataset, val_dataset, steps_per_epoch, input_tensor_shape \
             # = data.GetData(args.dataset)
     if args.dataset == 'cifar10':
@@ -230,18 +230,18 @@ if __name__ == '__main__':
     y_train = tf.keras.utils.to_categorical(y_train, args.class_num)
     y_test  = tf.keras.utils.to_categorical(y_test, args.class_num)
 
-    datagen = tf.keras.preprocessing.image.ImageDataGenerator( 
+    datagen = tf.keras.preprocessing.image.ImageDataGenerator(
             # featurewise_center = True,
             # featurewise_std_normalization = True,
-            width_shift_range = 0.1,  # randomly shift images horizontally (fraction of total width) 
-            height_shift_range = 0.1,  # randomly shift images vertically (fraction of total height) 
-            horizontal_flip = True,  # randomly flip images 
-            vertical_flip = False)  # randomly flip images
+            width_shift_range = 0.1,
+            height_shift_range = 0.1,
+            horizontal_flip = True,
+            vertical_flip = False)
     datagen.fit(x_train)
 
     # model architecture
     model = importlib.import_module(
-            '.' + args.model, 'models').model 
+            '.' + args.model, 'models').model
 
     # Load weights
     if args.pretrain_path != None:
@@ -252,19 +252,20 @@ if __name__ == '__main__':
         model.load_weights(str(pretrain_path))
 
     # Config model for train
-    sgd = tf.keras.optimizers.SGD(
-            lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+    # optm = tf.keras.optimizers.SGD(
+            # lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
+    optm = tf.keras.optimizers.Adam(lr=learning_rate)
     if args.dataset == 'cifar10' or args.dataset == 'cifar100':
         model.compile(
-                loss='categorical_crossentropy', optimizer=sgd,
+                loss='categorical_crossentropy', optimizer=optm,
                 metrics=['accuracy', 'top_k_categorical_accuracy'])
         # model.compile(
-                # loss='categorical_crossentropy', optimizer=sgd,
-                # metrics=['accuracy', 'top_k_categorical_accuracy'], 
+                # loss='categorical_crossentropy', optimizer=optm,
+                # metrics=['accuracy', 'top_k_categorical_accuracy'],
                 # run_eagerly = True)
     elif args.dataset == 'imagenet':
         model.compile(
-                loss='sparse_categorical_crossentropy', optimizer=sgd,
+                loss='sparse_categorical_crossentropy', optimizer=optm,
                 metrics=['accuracy', 'top_k_categorical_accuracy'])
     else:
         print('[ERROR][data.py] Wrong dataset!!!')
@@ -278,16 +279,19 @@ if __name__ == '__main__':
     # Learning rate call back
     reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
     # model.build(tf.TensorShape([None, 32, 32, 3]))
+    # model.build(tf.TensorShape([None, 224, 224, 3]))
+    # for i, weight in enumerate(model.weights):
+      # print('[DEBUG][inference4fpga.py] weight {} name: {}'.format(i, weight.name))
     # pdb.set_trace()
 
     # Training
     if args.mode == 'fit':
         historytemp = model.fit(
-                datagen.flow(x_train, y_train, batch_size = batch_size), 
+                datagen.flow(x_train, y_train, batch_size = batch_size),
                 # train_dataset,
-                steps_per_epoch=x_train.shape[0] // batch_size, 
-                # steps_per_epoch=steps_per_epoch, 
-                epochs=num_epochs, 
+                steps_per_epoch=x_train.shape[0] // batch_size,
+                # steps_per_epoch=steps_per_epoch,
+                epochs=num_epochs,
                 validation_data=(x_test, y_test),
                 # validation_data=val_dataset,
                 callbacks=[
@@ -308,7 +312,7 @@ if __name__ == '__main__':
                     y_ = model(x, training = True)
                     loss_value = loss_object(y_true = y, y_pred = y_)
                 grads = tape.gradient(loss_value, model.trainable_variables)
-                sgd.apply_gradients(zip(grads, model.trainable_variables))
+                optm.apply_gradients(zip(grads, model.trainable_variables))
                 epoch_loss_avg.update_state(loss_value)
                 epoch_accuracy.update_state(y, y_)
 
@@ -341,7 +345,7 @@ if __name__ == '__main__':
             print('Val Loss: {:.3f}, Val Accuracy: {:.3f}%'.format(
                 prediction, val_loss_value))
     else:
-        print('[ERROR][main.py] Wrong args.model!!!')
+        print('[ERROR][main.py] Wrong args.mode!!!')
         quit()
 
     # Save model 
