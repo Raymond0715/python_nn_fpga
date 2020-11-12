@@ -102,42 +102,14 @@ val_dataset_directory = \
     # return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 def lr_scheduler(epoch):
-    # if epoch < 80:
-        # return 0.1
-    # elif epoch < 140:
-        # return 0.01
-    # elif epoch < 200:
-        # return 0.001
-    # # elif epoch < 230:
-        # # return 0.0001
-    # # else:
-        # # return 0.00001
-    # else:
-        # return 0.0001
-
     if epoch < 80:
         return 0.01
     elif epoch < 140:
         return 0.001
     elif epoch < 200:
         return 0.0001
-    # elif epoch < 230:
-        # return 0.0001
-    # else:
-        # return 0.00001
     else:
         return 0.00001
-
-    # if epoch < 80:
-        # return 0.1
-    # elif epoch < 120:
-        # return 0.01
-    # else:
-        # return 0.001
-
-    # return learning_rate * (0.5 ** (epoch // lr_drop))
-    # return 0.
-    # return 1e-4
 
 
 class NGalpha(tf.keras.callbacks.Callback):
@@ -145,24 +117,10 @@ class NGalpha(tf.keras.callbacks.Callback):
         super(NGalpha, self).__init__()
 
     def on_epoch_begin(self, epoch, logs = None):
-        # self.model.alpha.assign(
-                # 1.0 / (math.e - 1.0) * \
-                # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0))
-        # self.model.alpha.assign(
-                # 0.5 / (math.e - 1.0) * \
-                # (math.e ** (float(epoch) / self.model.num_epochs) - 1.0) + 0.5)
-        # self.model.alpha.assign(
-                # 0.5 * math.log(
-                    # float(epoch) / self.model.num_epochs * (math.e - 1) + 1)
-                # + 0.5)
-        # self.model.alpha.assign(float(epoch) / num_epochs)
-
         if args.quantilize == 'ste':
             self.model.alpha.assign(0.0)
         elif args.quantilize == 'ng':
-            # self.model.alpha.assign(1.0)
             self.model.alpha.assign(0.5)
-            # self.model.alpha.assign(0.25)
         elif args.quantilize == 'full':
             pass
         else:
@@ -276,8 +234,8 @@ if __name__ == '__main__':
             # loss='categorical_crossentropy', optimizer=adam,
             # metrics=['accuracy'])
 
-    # Learning rate call back
-    reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
+    # # Learning rate call back
+    # reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
     # model.build(tf.TensorShape([None, 32, 32, 3]))
     # model.build(tf.TensorShape([None, 224, 224, 3]))
     # for i, weight in enumerate(model.weights):
@@ -295,7 +253,7 @@ if __name__ == '__main__':
                 validation_data=(x_test, y_test),
                 # validation_data=val_dataset,
                 callbacks=[
-                    reduce_lr,
+                    # reduce_lr,
                     NGalpha()],
                 verbose=2)
     elif args.mode == 'custom':
