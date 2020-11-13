@@ -102,14 +102,23 @@ val_dataset_directory = \
     # return loss_value, tape.gradient(loss_value, model.trainable_variables)
 
 def lr_scheduler(epoch):
-    if epoch < 80:
-        return 0.01
-    elif epoch < 140:
-        return 0.001
-    elif epoch < 200:
+    # # For SGD
+    # if epoch < 80:
+        # return 0.01
+    # elif epoch < 140:
+        # return 0.001
+    # elif epoch < 200:
+        # return 0.0001
+    # else:
+        # return 0.00001
+
+    # For Adam
+    if epoch < 120:
         return 0.0001
-    else:
+    elif epoch < 200:
         return 0.00001
+    else:
+        return 0.000001
 
 
 class NGalpha(tf.keras.callbacks.Callback):
