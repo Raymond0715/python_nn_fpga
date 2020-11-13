@@ -113,9 +113,18 @@ def lr_scheduler(epoch):
         # return 0.00001
 
     # For Adam
-    if epoch < 120:
+    # # Staircase 1
+    # if epoch < 120:
+        # return 0.0001
+    # elif epoch < 200:
+        # return 0.00001
+    # else:
+        # return 0.000001
+
+    # Staircase 2
+    if epoch < 80:
         return 0.0001
-    elif epoch < 200:
+    elif epoch < 180:
         return 0.00001
     else:
         return 0.000001
