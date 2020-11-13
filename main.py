@@ -235,7 +235,7 @@ if __name__ == '__main__':
             # metrics=['accuracy'])
 
     # # Learning rate call back
-    # reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
+    reduce_lr = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
     # model.build(tf.TensorShape([None, 32, 32, 3]))
     # model.build(tf.TensorShape([None, 224, 224, 3]))
     # for i, weight in enumerate(model.weights):
@@ -253,7 +253,7 @@ if __name__ == '__main__':
                 validation_data=(x_test, y_test),
                 # validation_data=val_dataset,
                 callbacks=[
-                    # reduce_lr,
+                    reduce_lr,
                     NGalpha()],
                 verbose=2)
     elif args.mode == 'custom':
