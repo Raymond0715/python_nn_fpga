@@ -271,7 +271,7 @@ if __name__ == '__main__':
                 validation_data=(x_test, y_test),
                 # validation_data=val_dataset,
                 callbacks=[
-                    reduce_lr,
+                    # reduce_lr,
                     NGalpha()],
                 verbose=2)
     elif args.mode == 'custom':
