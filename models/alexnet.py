@@ -16,7 +16,7 @@ class AlexNet(tf.keras.Model):
             quantilize_w = 32,
             quantilize_x = 32,
             num_epochs   = 250):
-        
+
         super(AlexNet, self).__init__(name = '')
         self.weight_decay = weight_decay
         self.quantilize   = quantilize 
