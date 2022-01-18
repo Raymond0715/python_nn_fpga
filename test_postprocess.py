@@ -1,10 +1,6 @@
 import argparse
 from pathlib import Path
-<<<<<<< HEAD
-import pdb
-=======
 # import pdb
->>>>>>> acac4e5788c02c5bc7776400c6d100dba6650057
 import numpy as np
 
 from tensorflow import Variable
