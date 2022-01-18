@@ -48,6 +48,7 @@ img = tf.reshape(img, [1, 224, 224, 3])
 input_tensor_shape = (None, 224, 224, 3)
 model.build(input_tensor_shape)
 model.load_weights(str(ckpt_path))
+pdb.set_trace()
 if args.merge_bn:
   print('[INFO][inference4fpga.py] Model merge BN layer.')
   # model_merge_bn.build(input_tensor_shape)
