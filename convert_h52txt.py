@@ -7,6 +7,7 @@ import numpy as np
 # from models.alexnet_merge_bn import model_merge_bn
 from test_conv import OneConvNet
 from utils import StoreWeight
+import pdb
 
 def RoundPower2(x, k=4):
   bound = np.power(2.0, k - 1)

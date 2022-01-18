@@ -1,0 +1,2 @@
+conf_33,conf_act_src,conf_weight_src,conf_relu_mode,conf_relu_switch,conf_bias_switch,conf_sampling_switch,conf_bitintercept_switch,conf_img_h,conf_finish,conf_reset
+1,1,1,1,1,1,0,1,416,0,1

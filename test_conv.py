@@ -35,8 +35,7 @@ class OneConvNet(Model):
 
     self.conv1 = QConv2D(
         256, 3, 1,
-        # 64, 3, 1,
-        # 256, 1, 1,
+        # 4096, 1, 1,
         quantize = self.quantize,
         quantize_w = self.quantize_w,
         quantize_x = self.quantize_x,

@@ -1,6 +1,10 @@
 import argparse
 from pathlib import Path
+<<<<<<< HEAD
 import pdb
+=======
+# import pdb
+>>>>>>> acac4e5788c02c5bc7776400c6d100dba6650057
 import numpy as np
 
 from tensorflow import Variable
@@ -27,8 +31,8 @@ class OneConvNet(Model):
     self.alpha = Variable(0., trainable = False)
 
     self.conv1 = QConv2D(
-        # 64, 3, 1,
-        256, 1, 1,
+        256, 3, 1,
+        # 4096, 1, 1,
         quantize = self.quantize,
         quantize_w = self.quantize_w,
         quantize_x = self.quantize_x,
@@ -113,30 +117,30 @@ if __name__ == '__main__':
 
   # img
   parser.add_argument(
-      '--img_dat', default = 'img_13_1024.bin',
+      '--img_dat', default = 'img_56_256.bin',
       help = 'Image file name.')
   parser.add_argument(
-      '--img_size', default = 13, type = int,
+      '--img_size', default = 56, type = int,
       help = 'Input image size.')
   parser.add_argument(
-      '--img_channels', default = 1024, type = int,
+      '--img_channels', default = 256, type = int,
       help = 'Image channels.')
 
   # ckpt
   parser.add_argument(
-      '--ckpt', default = 'weight_13_1024_256.h5',
+      '--ckpt', default = 'weight_56_256.h5',
       help = 'Checkpoint name. Set as None if don\'t load existing model.')
   parser.add_argument(
       '--ckpt_filter_num', default = 256, type = int,
       help = 'Number of output channels of filter.')
   parser.add_argument(
-      '--ckpt_bias', default = 'None',
+      '--ckpt_bias', default = 'bias_56_256.bin',
       help = 'Checkpoint file for bias.')
   parser.add_argument(
       '--ckpt_store', default = 'None',
       help = 'Output ckpt name. Set as None if don\'t store model.')
   parser.add_argument(
-      '--ckpt_bias_store', default = 'bias_13_1024.bin',
+      '--ckpt_bias_store', default = 'None',
       help = 'Output ckpt bias name. Set as None if don\'t store model.')
 
   # quantize
@@ -158,13 +162,13 @@ if __name__ == '__main__':
 
   # output
   parser.add_argument(
-      '--output_conv', default = 'out_13_1024_conv.dat',
+      '--output_conv', default = 'out_56_256_conv.dat',
       help = 'Output file for convolution name.')
   parser.add_argument(
-      '--output_bias', default = 'out_13_1024_bias.dat',
+      '--output_bias', default = 'out_56_256_bias.dat',
       help = 'Output file for port process name.')
   parser.add_argument(
-      '--output_relu', default = 'out_13_1024_leakyrelu.dat',
+      '--output_relu', default = 'out_56_256_leakyrelu.dat',
       help = 'Output file for port process name.')
   args = parser.parse_args()
 
@@ -227,7 +231,6 @@ if __name__ == '__main__':
   if args.ckpt != 'None':
     print('[INFO][test_postprocess.py] Load model:', ckpt_path)
     model.load_weights(str(ckpt_path))
-    pdb.set_trace()
 
   output_conv = model(img)
 
