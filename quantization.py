@@ -8,14 +8,14 @@ def QuantilizeFn(Wbit, Abit):
 
     def Grad(dy):
       return dy
-    return output, Grad 
+    return output, Grad
 
   @tf.custom_gradient
   def QRound(x):
     output = tf.round(x)
 
     def Grad(dy):
-      return dy 
+      return dy
 
     return output, Grad
 
@@ -55,7 +55,8 @@ def QuantilizeFn(Wbit, Abit):
       # max = tf.reduce_max(tf.abs(w))
       # w = w / max
       # output =  max * Round2Fixed(w, 1, Wbit)
-      output = Round2Fixed(w, 2, Wbit)
+      output = Round2Fixed(w, 4, Wbit)
+      # output = RoundPower2(w)
 
     return output
 
@@ -71,7 +72,8 @@ def QuantilizeFn(Wbit, Abit):
       # max = tf.reduce_max(tf.abs(x))
       # x = x / max
       # output = max * Round2Fixed(x, 1, Abit)
-      output = Round2Fixed(x, 2, Abit)
+      output = Round2Fixed(x, 4, Abit)
+      # output = Round2Fixed(x, 4, Abit)
 
     return output
 

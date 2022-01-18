@@ -1,7 +1,8 @@
+# import pdb
+
 import tensorflow as tf
 from tensorflow.keras import regularizers
 from quantization import QuantilizeFn, tangent
-import pdb
 
 class QConv2D(tf.keras.layers.Layer):
   def __init__(
@@ -9,7 +10,7 @@ class QConv2D(tf.keras.layers.Layer):
       kernel_depth,
       kernel_size,
       strides = [1, 1],
-      padding = 'SAME', 
+      padding = 'SAME',
       quantize = 'full',
       quantize_w = 32,
       quantize_x = 32,
@@ -18,7 +19,8 @@ class QConv2D(tf.keras.layers.Layer):
       name = None,
       alpha = None):
 
-    super(QConv2D, self).__init__()
+    # super(QConv2D, self).__init__()
+    super().__init__()
     self.kernel_depth = kernel_depth
     self.kernel_size = kernel_size
     self.strides = strides
