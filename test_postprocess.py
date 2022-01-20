@@ -175,7 +175,8 @@ if __name__ == '__main__':
   ckpt_path = Path('.') / 'ckpt' / args.ckpt
   ckpt_store_path = Path('.') / 'ckpt' / 'post_process' / args.ckpt_store
   ckpt_bias_path = Path('.') / 'ckpt_dat' / 'post_process' /args.ckpt_bias
-  ckpt_bias_store_path = Path('.') / 'ckpt_dat' / 'post_process' / args.ckpt_bias_store
+  ckpt_bias_store_path = \
+      Path('.') / 'ckpt_dat' / 'post_process' / args.ckpt_bias_store
   # output
   output_conv_path = Path('.') / 'dat' / 'post_process' / args.output_conv
   output_relu_path = Path('.') / 'dat' / 'post_process' / args.output_relu

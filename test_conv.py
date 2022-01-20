@@ -193,5 +193,5 @@ if __name__ == '__main__':
 
   # Store output ckpt
   if args.output_ckpt != 'None':
-    print('[INFO][inference4fpga.py] Store output ckpt:', args.output_ckpt)
+    print('[INFO][test_conv.py] Store output ckpt:', args.output_ckpt)
     model.save_weights(str(output_ckpt))
