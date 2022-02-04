@@ -56,7 +56,8 @@ def Round2Int(x, integer=16, k=32):
   n = np.power(2.0, fraction)
   min_val = -bound
   max_val = bound
-  x_round = np.around(x * n)
+  # x_round = np.around(x * n)
+  x_round = np.trunc(x * n)
   clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
   return clipped_value
 
@@ -276,7 +277,8 @@ if __name__ == '__main__':
 
   # Calculate ReLu
   print('[INFO][test_postprocess.py] Store output of ReLu.')
-  output_relu = tfReLu(tfConverttoTensor(output_bias), alpha = 0.015625)
+  output_relu = tfReLu(tfConverttoTensor(output_bias), alpha = 0.015625) / 2**8
+
   if len(output_relu.numpy().shape) == 4:
     Store4DTensor(
         output_relu,
