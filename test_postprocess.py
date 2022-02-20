@@ -86,7 +86,7 @@ def Store4DTensor(tensor, output_path, integer, width):
 
   num_pixel   = tensor_h * tensor_w * tensor_c * tensor_b
   tensor_np   = tensor.numpy()
-  data_tensor = np.zeros(num_pixel, dtype=np.int32)
+  data_tensor = np.zeros(num_pixel, dtype=np.float32)
 
   for b in range(tensor_b):
     for row in range(tensor_h):
@@ -94,7 +94,7 @@ def Store4DTensor(tensor, output_path, integer, width):
         for k in range(tensor_c):
           index = b * step_b + k * step_c + row * step_h + col * step_w
           data_tensor[index] = \
-                  Round2Int(tensor_np[b, row, col, k], integer, width)
+                  Round2Fixed(tensor_np[b, row, col, k], integer, width)
 
   with open(str(output_path), 'wb') as f:
     for npiter in np.nditer(data_tensor):
@@ -115,6 +115,7 @@ if __name__ == '__main__':
   # img
   parser.add_argument(
       '--img_dat', default = 'img_56_256.bin',
+      # '--img_dat', default = 'img_56_256_layer2.bin',
       help = 'Image file name.')
   parser.add_argument(
       '--img_size', default = 56, type = int,
@@ -132,13 +133,16 @@ if __name__ == '__main__':
       help = 'Number of output channels of filter.')
   parser.add_argument(
       '--ckpt_bias', default = 'bias_56_256.bin',
-      help = 'Checkpoint file for bias.')
+      help = 'Checkpoint file for bias. Set as None to create new bias data.')
   parser.add_argument(
       '--ckpt_store', default = 'None',
       help = 'Output ckpt name. Set as None if don\'t store model.')
   parser.add_argument(
       '--ckpt_bias_store', default = 'None',
       help = 'Output ckpt bias name. Set as None if don\'t store model.')
+  parser.add_argument(
+      '--ckpt_directory', default = 'post_process_bias_mul',
+      help = 'Output directory.')
 
   # quantize
   parser.add_argument(
@@ -159,6 +163,9 @@ if __name__ == '__main__':
 
   # output
   parser.add_argument(
+      '--output_directory', default = 'post_process_mul',
+      help = 'Output directory.')
+  parser.add_argument(
       '--output_conv', default = 'out_56_256_conv.dat',
       help = 'Output file for convolution name.')
   parser.add_argument(
@@ -173,15 +180,21 @@ if __name__ == '__main__':
   # img
   image_bin_path = Path('.') / 'fig' / args.img_dat
   # ckpt
-  ckpt_path = Path('.') / 'ckpt' / args.ckpt
-  ckpt_store_path = Path('.') / 'ckpt' / 'post_process' / args.ckpt_store
-  ckpt_bias_path = Path('.') / 'ckpt_dat' / 'post_process' /args.ckpt_bias
+  ckpt_path = \
+      Path('.') / 'ckpt' / args.ckpt
+  ckpt_store_path = \
+      Path('.') / 'ckpt' / args.ckpt_store
+  ckpt_bias_path = \
+      Path('.') / 'ckpt_dat' / args.ckpt_directory /args.ckpt_bias
   ckpt_bias_store_path = \
-      Path('.') / 'ckpt_dat' / 'post_process' / args.ckpt_bias_store
+      Path('.') / 'ckpt_dat' / args.ckpt_directory / args.ckpt_bias_store
   # output
-  output_conv_path = Path('.') / 'dat' / 'post_process' / args.output_conv
-  output_relu_path = Path('.') / 'dat' / 'post_process' / args.output_relu
-  output_bias_path = Path('.') / 'dat' / 'post_process' / args.output_bias
+  output_conv_path = \
+      Path('.') / 'dat' / args.output_directory / args.output_conv
+  output_relu_path = \
+      Path('.') / 'dat' / args.output_directory / args.output_relu
+  output_bias_path = \
+      Path('.') / 'dat' / args.output_directory / args.output_bias
 
   # Read image .bin
   img_size = args.img_size
@@ -194,23 +207,17 @@ if __name__ == '__main__':
   # Read bias .bin
   if args.ckpt_bias != 'None':
     print('[INFO][test_postprocess.py] Read bias:', ckpt_bias_path)
-    bias_quantize = np.fromfile(ckpt_bias_path, dtype = np.int32) \
-            / np.power(2,
-                    args.quantize_x + args.quantize_w
-                    - args.quantize_x_integer - args.quantize_w_integer)
-    bias_int = Round2Int(
-        bias_quantize,
-        args.quantize_x_integer + args.quantize_w_integer,
-        args.quantize_x + args.quantize_w)
-    with open(str(ckpt_bias_store_path), 'wb') as f:
-      for bias_data in np.nditer(bias_int):
-        f.write(bias_data)
+    bias_quantize = \
+        np.fromfile(ckpt_bias_path, dtype = np.int32) \
+        / np.power(2,
+            args.quantize_x + args.quantize_w
+            - args.quantize_x_integer - args.quantize_w_integer)
   else:
     print('[INFO][test_postprocess.py] Write bias:', ckpt_bias_store_path)
     bias_quantize = Round2Fixed(
-            np.random.rand(args.ckpt_filter_num).astype(np.float32) - 0.5,
-            args.quantize_x_integer + args.quantize_w_integer,
-            args.quantize_x + args.quantize_w)
+        np.random.rand(args.ckpt_filter_num).astype(np.float32) - 0.5,
+        args.quantize_x_integer + args.quantize_w_integer,
+        args.quantize_x + args.quantize_w)
     bias_int = Round2Int(
         bias_quantize,
         args.quantize_x_integer + args.quantize_w_integer,
@@ -225,11 +232,12 @@ if __name__ == '__main__':
   model = OneConvNet(args.quantize, args.quantize_w, args.quantize_x)
   model.build(input_tensor_shape)
 
-  # Calculate convolution
+  # Load weight data.
   if args.ckpt != 'None':
     print('[INFO][test_postprocess.py] Load model:', ckpt_path)
     model.load_weights(str(ckpt_path))
 
+  # Calculate convolution
   output_conv = model(img)
 
   if args.ckpt_store != 'None':
@@ -277,7 +285,7 @@ if __name__ == '__main__':
 
   # Calculate ReLu
   print('[INFO][test_postprocess.py] Store output of ReLu.')
-  output_relu = tfReLu(tfConverttoTensor(output_bias), alpha = 0.015625) / 2**8
+  output_relu = tfReLu(tfConverttoTensor(output_bias), alpha = 0.015625)
 
   if len(output_relu.numpy().shape) == 4:
     Store4DTensor(

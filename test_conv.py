@@ -90,8 +90,9 @@ def Store4DTensor(tensor, output_path):
         for k in range(tensor_c):
           index = b * step_b + k * step_c + row * step_h + col * step_w
           data_tensor[index] = \
-                  Round2Fixed(tensor_np[b, row, col, k], 8, 24)
+                  Round2Fixed(tensor_np[b, row, col, k], 4, 16)
                   # Round2Fixed(tensor_np[b, row, col, k], 4, 12)
+                  # Round2Fixed(tensor_np[b, row, col, k], 8, 24)
 
   with open(str(output_path), 'wb') as f:
     # for i, npiter in enumerate(np.nditer(data_tensor)):

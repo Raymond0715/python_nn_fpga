@@ -55,8 +55,8 @@ def QuantilizeFn(Wbit, Abit):
       # max = tf.reduce_max(tf.abs(w))
       # w = w / max
       # output =  max * Round2Fixed(w, 1, Wbit)
-      output = Round2Fixed(w, 4, Wbit)
-      # output = RoundPower2(w)
+      # output = Round2Fixed(w, 4, Wbit)
+      output = RoundPower2(w)
 
     return output
 
@@ -69,7 +69,8 @@ def QuantilizeFn(Wbit, Abit):
     elif Abit == 32:
       output = x
     else:   # QNN
-      output = Round2Fixed(x, 4, Abit)
+      # output = Round2Fixed(x, 4, Abit)
+      output = Round2Fixed(x, 3, Abit)
 
     return output
 

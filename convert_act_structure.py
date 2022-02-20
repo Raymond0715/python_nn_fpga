@@ -1,16 +1,7 @@
+import argparse
 from pathlib import Path
-import pdb
 import numpy as np
 
-# PARAMETER
-PARAL_IN = 8
-
-# img_w = 28
-# img_h = 28
-# img_ch = 512
-img_w = 13
-img_h = 13
-img_ch = 1024
 
 def Round2Fixed(x, integer=16, k=32):
   assert integer >= 1, integer
@@ -24,31 +15,66 @@ def Round2Fixed(x, integer=16, k=32):
   clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
   return clipped_value
 
-num_pixel = img_w * img_h * img_ch
 
-sp = 1
-sw = PARAL_IN
-sc = img_w * PARAL_IN
-sh = img_ch * img_w
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(
+      description = 'For FPGA, convert activation data layout')
+  parser.add_argument(
+      '--paral_in', default = 8, type = int,
+      help = 'Input degree of parallelism. No need to change in most case.')
+  parser.add_argument(
+      '--img_size', default = 56, type = int,
+      help = 'Input image size.')
+  parser.add_argument(
+      '--img_channels', default = 256, type = int,
+      help = 'Image channels.')
+  parser.add_argument(
+      '--quantize_x_integer', default = 4, type = int,
+      help = 'Specify integer data width of input tensor.')
+  parser.add_argument(
+      '--quantize_x', default = 12, type = int,
+      help = 'Specify data width of input tensor.')
+  parser.add_argument(
+      '--input', default = 'img_56_256.bin',
+      help = 'Input file name.')
+  parser.add_argument(
+      '--output', default = 'img_56_256_process_fix.dat',
+      help = 'Output file name.')
+  args = parser.parse_args()
 
-dat_raw_path = Path('.') / 'fig' / 'img_13_1024.bin'
-dat_path = Path('.') / 'fig' / 'img_13_1024_process_fix.bin'
+  # PARAMETER
+  PARAL_IN = args.paral_in
+  img_w = args.img_size
+  img_h = args.img_size
+  img_ch = args.img_channels
 
-img_raw = np.fromfile(dat_raw_path, dtype=np.float32)
-img_raw = np.reshape(img_raw, (img_ch, img_w, img_h))
+  num_pixel = img_w * img_h * img_ch
 
-data_img = np.zeros(num_pixel, dtype = np.int32)
+  sp = 1
+  sw = PARAL_IN
+  sc = img_w * PARAL_IN
+  sh = img_ch * img_w
 
-for row in range(img_h):
-  for k in range(int(img_ch / PARAL_IN)):
-    for col in range(img_w):
-      for p in range(PARAL_IN):
-        data_img[row * sh + k * sc + col * sw + p * sp] = \
-            Round2Fixed(img_raw[k * PARAL_IN + p, row, col], 4, 12)
-            # Round2Fixed(img_raw[k * PARAL_IN + p, row, col], 3, 8)
+  dat_raw_path = Path('.') / 'fig' / args.input
+  dat_path = Path('.') / 'fig' / args.output
 
-# pdb.set_trace()
-f = open(dat_path, 'wb')
-for npiter in np.nditer(data_img):
-  f.write(npiter)
-f.close()
+  img_raw = np.fromfile(dat_raw_path, dtype=np.float32)
+  img_raw = np.reshape(img_raw, (img_ch, img_w, img_h))
+
+  data_img = np.zeros(num_pixel, dtype = np.int32)
+
+  for row in range(img_h):
+    for k in range(int(img_ch / PARAL_IN)):
+      for col in range(img_w):
+        for p in range(PARAL_IN):
+          data_img[row * sh + k * sc + col * sw + p * sp] = \
+              Round2Fixed(img_raw[k * PARAL_IN + p, row, col],
+                  args.quantize_x_integer, args.quantize_x)
+
+  # f = open(dat_path, 'wb')
+  # for npiter in np.nditer(data_img):
+    # f.write(npiter)
+  # f.close()
+  with open(dat_path, 'wb') as f:
+    for npiter in np.nditer(data_img):
+      f.write(npiter)
