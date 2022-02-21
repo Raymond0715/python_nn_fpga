@@ -66,7 +66,6 @@ class QConv2D(tf.keras.layers.Layer):
       input_tensor_quantize = self.QuantizeActivation(input_tensor)
       input_tensor = tangent(
           input_tensor, input_tensor_quantize, self.alpha)
-
       if self.use_bias:
         bias = self.QuantizeActivation(self.bias)
     else:

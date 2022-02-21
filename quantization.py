@@ -1,5 +1,4 @@
 import tensorflow as tf
-import pdb
 
 def QuantilizeFn(Wbit, Abit):
   @tf.custom_gradient
