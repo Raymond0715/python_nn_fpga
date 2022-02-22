@@ -41,7 +41,7 @@
       python convert_act_structure.py
        ```
 
-    - $56 \times 56 \times 256$; 移位; w3a8; 激活值整数位宽为3.
+    - $56 \times 56 \times 256$; 移位; w3a8; 激活值整数位宽为3; 二进制上板.
       ```sh
       python convert_act_structure.py \
       --img_size 56 \
@@ -49,7 +49,20 @@
       --quantize_x_integer 3 \
       --quantize_x 8 \
       --input img_56_256.bin \
-      --output img_56_256_process_shift.dat
+      --output img_56_256_process_shift.dat \
+      --bin
+      ```
+
+    - $56 \times 56 \times 256$; 移位; w3a8; 激活值整数位宽为3; 文本文件仿真.
+      ```sh
+      python convert_act_structure.py \
+      --img_size 56 \
+      --img_channels 256 \
+      --quantize_x_integer 3 \
+      --quantize_x 8 \
+      --input img_56_256.bin \
+      --output img_56_256_process_shift_sim.txt \
+      --txt
       ```
 
   - `convert_h52txt.py`

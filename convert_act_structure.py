@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 
-def Round2Fixed(x, integer=16, k=32):
+def Round2Int(x, integer=16, k=32):
   assert integer >= 1, integer
   fraction = k - integer
   bound = np.power(2.0, k - 1)
@@ -40,6 +40,13 @@ if __name__ == '__main__':
   parser.add_argument(
       '--output', default = 'img_56_256_process_fix.dat',
       help = 'Output file name.')
+  parser.add_argument(
+      '--bin', dest='bin', action='store_true',
+      help = 'Output binary for on-board test.')
+  parser.add_argument(
+      '--txt', dest='bin', action='store_false',
+      help = 'Output text for simulation.')
+  parser.set_defaults(bin=True)
   args = parser.parse_args()
 
   # PARAMETER
@@ -68,13 +75,24 @@ if __name__ == '__main__':
       for col in range(img_w):
         for p in range(PARAL_IN):
           data_img[row * sh + k * sc + col * sw + p * sp] = \
-              Round2Fixed(img_raw[k * PARAL_IN + p, row, col],
+              Round2Int(img_raw[k * PARAL_IN + p, row, col],
                   args.quantize_x_integer, args.quantize_x)
 
-  # f = open(dat_path, 'wb')
-  # for npiter in np.nditer(data_img):
-    # f.write(npiter)
-  # f.close()
-  with open(dat_path, 'wb') as f:
-    for npiter in np.nditer(data_img):
-      f.write(npiter)
+  if args.bin:
+    print('[INFO][convert_act_structure.py] Store output as binary.')
+    with open(dat_path, 'wb') as f:
+      for npiter in np.nditer(data_img):
+        f.write(npiter)
+  else:
+    print('[INFO][convert_act_structure.py] Store output as text.')
+    with open(dat_path, 'w') as f:
+      for j in range(int(num_pixel/args.paral_in)):
+        for i in range(args.paral_in):
+          pixel = data_img[j*args.paral_in+args.paral_in-1-i]
+          if pixel >= 0:
+            pixel_str = '{:0>4x}'.format(pixel)
+          else:
+            pixel_str = '{:0>4x}'.format(0x10000+pixel)
+          f.write(pixel_str)
+
+        f.write('\n')
