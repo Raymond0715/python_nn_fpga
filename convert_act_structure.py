@@ -88,7 +88,8 @@ if __name__ == '__main__':
     with open(dat_path, 'w') as f:
       for j in range(int(num_pixel/args.paral_in)):
         for i in range(args.paral_in):
-          pixel = data_img[j*args.paral_in+args.paral_in-1-i]
+          # pixel = data_img[j*args.paral_in+args.paral_in-1-i]
+          pixel = data_img[j*args.paral_in+i]
           if pixel >= 0:
             pixel_str = '{:0>4x}'.format(pixel)
           else:
