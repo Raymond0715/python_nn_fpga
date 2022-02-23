@@ -66,13 +66,26 @@ def Store4DBinConvert(weight, f):
             # data_weight[index] = \
                 # Round2Fixed(weight_np[row, col, k, b * weight_p + p], 4, 12)
 
-  for i in range(int(num_pixel / 2)):
-    temp = data_weight[2 * i]
-    data_weight[2 * i] = data_weight[2 * i + 1]
-    data_weight[2 * i + 1] = temp
+  if args.bin:
+    for i in range(int(num_pixel / 2)):
+      temp = data_weight[2 * i]
+      data_weight[2 * i] = data_weight[2 * i + 1]
+      data_weight[2 * i + 1] = temp
 
-  for npiter in np.nditer(data_weight):
-    f.write(npiter)
+    for npiter in np.nditer(data_weight):
+      f.write(npiter)
+
+  else:
+    for j in range(int(num_pixel/args.paral_in)):
+      for i in range(args.paral_in):
+        pixel = data_weight[j*args.paral_in+i]
+        if pixel >= 0:
+          pixel_str = '{:0>4x}'.format(pixel)
+        else:
+          pixel_str = '{:0>4x}'.format(0x10000+pixel)
+        f.write(pixel_str)
+
+      f.write('\n')
 
 
 def Store1DBinConvert(weight, f):
@@ -99,10 +112,13 @@ def StoreWeightBinConvert(weight, f):
         'Variable name is {}'.format(weight.name))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   parser = argparse.ArgumentParser(
       description = 'Store model as .dat. Default running command is'
       '`python convert_h52txt.py`')
+  parser.add_argument(
+      '--paral_in', default = 8, type = int,
+      help = 'Input degree of parallelism. No need to change in most case.')
   parser.add_argument(
       '--img_w', default = 56, type = int,
       help = 'Image width and height.')
@@ -115,6 +131,12 @@ if __name__ == "__main__":
   parser.add_argument(
       '--output_file', default = 'weight_56_256_shift_process_16bit.bin',
       help = 'Output file name.')
+  parser.add_argument(
+      '--bin', dest='bin', action='store_true',
+      help = 'Output binary for on-board test.')
+  parser.add_argument(
+      '--txt', dest='bin', action='store_false',
+      help = 'Output text for simulation.')
   args = parser.parse_args()
 
 
@@ -127,6 +149,11 @@ if __name__ == "__main__":
   model.build(input_tensor_shape)
   model.load_weights(str(ckpt_path))
 
-  with open(str(output_path), mode = 'wb') as f:
-    for i, weight in enumerate(model.weights):
-      StoreWeightBinConvert(weight, f)
+  if args.bin:
+    with open(str(output_path), mode = 'wb') as f:
+      for i, weight in enumerate(model.weights):
+        StoreWeightBinConvert(weight, f)
+  else:
+    with open(str(output_path), mode = 'w') as f:
+      for i, weight in enumerate(model.weights):
+        StoreWeightBinConvert(weight, f)

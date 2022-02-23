@@ -1,5 +1,7 @@
 **重要声明: 该测试数据生成工程是我在进行 FPGA 开发时自用的, 并不是用户友善的工程. 部分脚本之间功能重复或者有 参数/定义 依赖等情况. 欢迎并鼓励在实际使用时, 根据用户习惯与喜好自行修改.**
 
+-[] 量化函数整数部分改为命令行参数.
+
 # 1 烂笔头
 
 记录常见用于生成测试数据的命令以及相关代码的修改.
@@ -69,7 +71,31 @@
 
     - 乘法和移位需要修改函数 `Store4DBinConvert` 中有关量化函数的部分.
 
-    - 以 16 位整数的格式保存为二进制文件, 相邻两个数颠倒以满足硬件内存排布的需求.
+    - 用于上板测试的数据, 以 16 位整数的格式保存为二进制文件, 相邻两个数颠倒以满足硬件内存排布的需求.
+
+    - 用于仿真的数据, 以 16 位整数的格式保存为文本文件.
+      ```sh
+      python convert_h52txt.py \
+      --img_w 56 \
+      --img_ch 256 \
+      --input_file weight_56_256.h5 \
+      --output_file weight_56_256_shift_process_16bit_sim.txt \
+      --txt
+      ```
+
+  - `convert_bias_bin2txt.py`
+
+    - 将存 bias 的二进制文件转换为文本文件
+
+    - $56 \times 56 \times 256$; 移位; a16; 整数位宽为7.
+      ```sh
+      python convert_bias_bin2txt.py \
+      --num_data 256 \
+      --package_size 4 \
+      --directory post_process_bias_shift \
+      --input_file bias_56_256.bin \
+      --output_file bias_56_256_sim.txt
+      ```
 
   - `convert_out_structure.py`
 
@@ -80,13 +106,13 @@
       python convert_out_structure.py
       ```
 
-    - $56 \times 56 \times 256$; 巻积计算结果; 移位; a16; 激活值整数位宽为4.
+    - $56 \times 56 \times 256$; 巻积计算结果; 移位; a16; 激活值整数位宽为7.
       ```sh
       python convert_out_structure.py \
       --directory post_process_shift \
       --input out_56_256_conv.dat \
       --output out_56_256_conv_process.dat \
-      --quantize_x_integer 4 \
+      --quantize_x_integer 7 \
       --quantize_x 16
       ```
 
