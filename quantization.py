@@ -68,7 +68,6 @@ def QuantilizeFn(Wbit, Abit):
     elif Abit == 32:
       output = x
     else:   # QNN
-      # output = Round2Fixed(x, 4, Abit)
       output = Round2Fixed(x, 3, Abit)
 
     return output

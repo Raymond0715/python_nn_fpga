@@ -26,7 +26,7 @@
       ```sh
       python test_postprocess.py \
       --ckpt_directory post_process_bias_shift \
-      --quantize_w_integer 1 \
+      --quantize_w_integer 4 \
       --quantize_w 8 \
       --quantize_x_integer 3 \
       --quantize_x 8 \
@@ -71,7 +71,19 @@
 
     - 乘法和移位需要修改函数 `Store4DBinConvert` 中有关量化函数的部分.
 
+    - PC 侧模拟移位和 FPGA 侧移位所用的权重数值不一样, FPGA 侧将输入映射到高8位, 并将PC中的左右移统一转化为右移, 所以在将数据转换为 FPGA 平台需要的数据时, 需要将 PC 侧的权重数据除8, 才能得到一致的计算结果.
+
     - 用于上板测试的数据, 以 16 位整数的格式保存为二进制文件, 相邻两个数颠倒以满足硬件内存排布的需求.
+
+    - 用于仿真的数据, 以 16 位整数的格式保存为文本文件.
+      ```sh
+      python convert_h52txt.py \
+      --img_w 56 \
+      --img_ch 256 \
+      --input_file weight_56_256.h5 \
+      --output_file weight_56_256_shift_process_16bit.dat \
+      --bin
+      ```
 
     - 用于仿真的数据, 以 16 位整数的格式保存为文本文件.
       ```sh

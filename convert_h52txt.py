@@ -12,6 +12,8 @@ def RoundPower2(x, k=4):
   bound = np.power(2.0, k - 1)
   min_val = np.power(2.0, -bound + 1.0)
   s = np.sign(x)
+  # # Check README.md for why `x` need to be divided by `8`
+  # x = np.clip(np.absolute(x / 8), min_val, 1.0)
   x = np.clip(np.absolute(x), min_val, 1.0)
   p = -1 * np.around(np.log(x) / np.log(2.))
   if s == -1:

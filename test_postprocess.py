@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-# import pdb
 import numpy as np
 
 from tensorflow import Variable
@@ -132,7 +131,7 @@ if __name__ == '__main__':
       '--ckpt_filter_num', default = 256, type = int,
       help = 'Number of output channels of filter.')
   parser.add_argument(
-      '--ckpt_bias', default = 'bias_56_256.bin',
+      '--ckpt_bias', default = 'bias_56_256.dat',
       help = 'Checkpoint file for bias. Set as None to create new bias data.')
   parser.add_argument(
       '--ckpt_store', default = 'None',
