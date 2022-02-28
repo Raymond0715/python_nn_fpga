@@ -9,9 +9,9 @@ def Round2Int(x, integer=16, k=32):
   bound = np.power(2.0, k - 1)
   n = np.power(2.0, fraction)
   min_val = -bound
-  max_val = bound
+  max_val = bound-1
   # x_round = np.around(x * n)
-  x_round = np.trunc(x * n)
+  x_round = np.floor(x * n)
   clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
   return clipped_value
 

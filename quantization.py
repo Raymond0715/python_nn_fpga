@@ -35,7 +35,8 @@ def QuantilizeFn(Wbit, Abit):
     min_val = tf.math.pow(2.0, -bound + 1.0)
     s = tf.sign(x)
     x = tf.clip_by_value(tf.math.abs(x), min_val, 1.0)
-    p = QRound(tf.math.log(x) / tf.math.log(2.))
+    # p = QRound(tf.math.log(x) / tf.math.log(2.))
+    p = QRound(tf.math.log(x * 8) / tf.math.log(2.))
     return s * tf.math.pow(2.0, p)
 
   # def CeilPower2(x):

@@ -4,8 +4,9 @@
 
 # 1 烂笔头
 
-记录常见用于生成测试数据的命令以及相关代码的修改.
+## 1.1 常用命令
 
+记录常见用于生成测试数据的命令以及相关代码的修改.
 
   - `test_postprocess.py`
 
@@ -34,6 +35,21 @@
       --output_conv out_56_256_conv.dat \
       --output_bias out_56_256_bias.dat \
       --output_relu out_56_256_leakyrelu.dat
+      ```
+
+    - $56 \times 56 \times 256$; 移位; w4a8; 激活值整数位宽为3; 下述设置中, `quantize_w_integer` 和 `quantize_w` 为移位操作等价为乘法操作后的值; 第二层.
+      ```sh
+      python test_postprocess.py \
+      --img_dat img_56_256_layer2_shift.dat \
+      --ckpt_directory post_process_bias_shift \
+      --quantize_w_integer 4 \
+      --quantize_w 8 \
+      --quantize_x_integer 3 \
+      --quantize_x 8 \
+      --output_directory post_process_shift \
+      --output_conv out_56_256_conv_layer2.dat \
+      --output_bias out_56_256_bias_layer2.dat \
+      --output_relu out_56_256_leakyrelu_layer2.dat
       ```
 
   - `convert_act_structure.py`
@@ -132,12 +148,17 @@
       ```sh
       python convert_out_structure.py \
       --directory post_process_shift \
-      --paral_out 16 \
+      --paral_out 8 \
       --input out_56_256_leakyrelu.dat \
       --output out_56_256_leakyrelu_process.dat \
       --quantize_x_integer 3 \
       --quantize_x 8
       ```
+
+
+## 1.2 常用数字
+
+$56 \times 56 \times 256 = 0x8318\_8000$
 
 
 # 2 数据说明
