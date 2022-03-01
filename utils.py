@@ -173,3 +173,53 @@ def StoreWeightBin(weight, f):
   else:
     print('[INFO][utils.py] Wrong weight shape!!! '
         'Variable name is {}'.format(weight.name))
+
+
+# Temporary function. There are too many Roundxxx() in this project.
+def Round2Fixed(x, integer=16, k=32):
+  assert integer >= 1, integer
+  fraction = k - integer
+  bound = np.power(2.0, integer - 1)
+  n = np.power(2.0, fraction)
+  min_val = -bound
+  max_val = bound
+  x_round = np.around(x * n) / n
+  clipped_value = np.clip(x_round, min_val, max_val)
+  return clipped_value
+
+
+def QStore4DTensor(tensor, output_path, integer, width):
+  tensor_h = tensor.shape[1]
+  tensor_w = tensor.shape[2]
+  tensor_c = tensor.shape[3]
+  tensor_b = tensor.shape[0]
+
+  step_b = tensor_h * tensor_w * tensor_c
+  step_c = tensor_h * tensor_w
+  step_h = tensor_h
+  step_w = 1
+
+  num_pixel   = tensor_h * tensor_w * tensor_c * tensor_b
+  tensor_np   = tensor.numpy()
+  data_tensor = np.zeros(num_pixel, dtype=np.float32)
+
+  for b in range(tensor_b):
+    for row in range(tensor_h):
+      for col in range(tensor_w):
+        for k in range(tensor_c):
+          index = b * step_b + k * step_c + row * step_h + col * step_w
+          data_tensor[index] = \
+                  Round2Fixed(tensor_np[b, row, col, k], integer, width)
+
+  with open(str(output_path), 'wb') as f:
+    for npiter in np.nditer(data_tensor):
+      f.write(npiter)
+
+
+def QStore2DTensor(tensor, output_path):
+  tensor_len  = tensor.shape[1]
+  tensor_np   = tensor.numpy()
+
+  with open(str(output_path), 'wb') as f:
+    for i in range(tensor_len):
+      f.write(Round2Fixed[0,i])
