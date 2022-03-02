@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 
 from test_conv import OneConvNet
-from utils import StoreWeight
 import pdb
 
 def RoundPower2(x, k=4):

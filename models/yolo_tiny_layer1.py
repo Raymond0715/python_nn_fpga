@@ -4,7 +4,6 @@ from tensorflow.keras.layers import MaxPooling2D, BatchNormalization
 from tensorflow.keras import regularizers
 
 from nn_utils import QConv2D
-from utils import QStore4DTensor, QStore2DTensor
 
 class YoloTiny(Model):
   def __init__(

@@ -1,7 +1,10 @@
 from tensorflow.keras.layers import BatchNormalization
+from tensorflow import math as tfMath
 
+from quantization import Round2Fixed, RoundPower2Exp
 import nn_utils
 import numpy as np
+
 
 def MergeBN(dst, src):
   merge_list = []
@@ -32,194 +35,23 @@ def MergeBN(dst, src):
   return dst
 
 
-def Store4DTensor(tensor, output_path):
-  tensor_h = tensor.shape[1]
-  tensor_w = tensor.shape[2]
-  tensor_c = tensor.shape[3]
-  tensor_b = tensor.shape[0]
+def RoundPower24Store(x, k=4):
+  s, p = RoundPower2Exp(x, k)
+  p_minus = p * -1
+  s_pro = (s - 1) * -4
+  p_pro = s_pro + p_minus
 
-  step_b = tensor_h * tensor_w * tensor_c
-  step_c = tensor_h * tensor_w
-  step_h = tensor_h
-  step_w = 1
+  # if s == -1:
+    # # p = 0x8 + p.astype(tfInt16)
+    # p = 0x8 + p
 
-  num_pixel   = tensor_h * tensor_w * tensor_c * tensor_b
-  tensor_np   = tensor.numpy()
-  data_tensor = np.zeros(num_pixel, dtype=np.float32)
-
-  for b in range(tensor_b):
-    for row in range(tensor_h):
-      for col in range(tensor_w):
-        for k in range(tensor_c):
-          index = b * step_b + k * step_c + row * step_h + col * step_w
-          data_tensor[index] = tensor_np[b, row, col, k]
-
-  f = open(str(output_path), 'w')
-  for i, npiter in enumerate(np.nditer(data_tensor)):
-    # f.write(str(npiter) + ' ')
-    f.write(str(npiter) + ', ')
-    if (i + 1) % 9 == 0:
-      f.write('\n')
-
-  if num_pixel % 9 != 0:
-    f.write('\n')
-
-  f.close()
+  return p_pro
 
 
-def Store4D(weight, f):
-  weight_h = weight.shape[0]
-  weight_w = weight.shape[1]
-  weight_c = weight.shape[2]
-  weight_f = weight.shape[3]
+def Fix2Int(x, integer=16, k=32):
+  # x_quantize_float = Round2Fixed(x, integer, k)
+  fractrion = k - integer
+  n = tfMath.pow(2, fraction)
+  x_quantize_int = x_quantize_float * n
 
-  step_f   = weight_h * weight_w * weight_c  # Step for filter
-  step_c   = weight_h * weight_w             # Step for channel
-  step_h   = weight_h                        # Step for col
-  step_w   = 1                               # Step for row
-
-  num_pixel = weight_f * weight_c * weight_h * weight_w
-  weight_np   = weight.numpy()
-  data_weight = np.zeros(num_pixel, dtype=np.float32)
-  for b in range(weight_f):
-    for row in range(weight_h):
-      for col in range(weight_w):
-        for k in range(weight_c):
-          index = b * step_f + k * step_c + row * step_h + col * step_w
-          data_weight[index] = weight_np[row, col, k, b]
-
-  for npiter in np.nditer(data_weight):
-    f.write(str(npiter) + ' ')
-
-
-def Store2DTensor(tensor, output_path):
-  f = open(str(output_path), 'w')
-
-  tensor_len  = tensor.shape[1]
-  tensor_np   = tensor.numpy()
-  for i in range(tensor_len):
-    f.write(str(tensor_np[0,i]) + ' ')
-    if (i + 1) % 9 == 0:
-      f.write('\n')
-
-  if tensor_len % 9 != 0:
-    f.write('\n')
-
-  f.close()
-
-
-def Store1D(bn, f):
-  bn_len  = bn.shape[0]
-  bn_np   = bn.numpy()
-  for i in range(bn_len):
-    f.write(str(bn_np[i]) + ' ')
-
-
-def StoreWeight(weight, f):
-  if len(weight.shape) == 4:
-    print('[INFO][store_weight.py] Store 4D tensor {}'.format(weight.name))
-    Store4D(weight, f)
-  elif len(weight.shape) == 1:
-    print('[INFO][store_weight.py] Store 1D tensor '
-        'weight {}'.format(weight.name))
-    Store1D(weight, f)
-  else:
-    print('[INFO][store_weight.py] Wrong weight shape!!! '
-        'Variable name is {}'.format(weight.name))
-
-
-def Store4DBin(weight, f):
-  weight_h = weight.shape[0]
-  weight_w = weight.shape[1]
-  weight_c = weight.shape[2]
-  weight_f = weight.shape[3]
-
-  step_f = weight_h * weight_w * weight_c  # Step for filter
-  step_c = weight_h * weight_w             # Step for channel
-  step_h = weight_h                        # Step for col
-  step_w = 1                               # Step for row
-
-  num_pixel = weight_f * weight_c * weight_h * weight_w
-  weight_np   = weight.numpy()
-  data_weight = np.zeros(num_pixel, dtype=np.float32)
-  for b in range(weight_f):
-    for row in range(weight_h):
-      for col in range(weight_w):
-        for k in range(weight_c):
-          index = b * step_f + k * step_c + row * step_h + col * step_w
-          data_weight[index] = weight_np[row, col, k, b]
-
-  for npiter in np.nditer(data_weight):
-    # f.write(str(npiter) + ' ')
-    f.write(npiter)
-
-
-def Store1DBin(bn, f):
-  bn_len  = bn.shape[0]
-  bn_np   = bn.numpy()
-  for i in range(bn_len):
-    # f.write(str(bn_np[i]) + ' ')
-    f.write(bn_np[i])
-
-
-def StoreWeightBin(weight, f):
-  if len(weight.shape) == 4:
-    print('[INFO][utils.py] Store 4D tensor {}'.format(weight.name))
-    Store4DBin(weight, f)
-  elif len(weight.shape) == 1:
-    print('[INFO][utils.py] Store 1D tensor '
-        'weight {}'.format(weight.name))
-    Store1DBin(weight, f)
-  else:
-    print('[INFO][utils.py] Wrong weight shape!!! '
-        'Variable name is {}'.format(weight.name))
-
-
-# Temporary function. There are too many Roundxxx() in this project.
-def Round2Fixed(x, integer=16, k=32):
-  assert integer >= 1, integer
-  fraction = k - integer
-  bound = np.power(2.0, integer - 1)
-  n = np.power(2.0, fraction)
-  min_val = -bound
-  max_val = bound
-  x_round = np.around(x * n) / n
-  clipped_value = np.clip(x_round, min_val, max_val)
-  return clipped_value
-
-
-def QStore4DTensor(tensor, output_path, integer, width):
-  tensor_h = tensor.shape[1]
-  tensor_w = tensor.shape[2]
-  tensor_c = tensor.shape[3]
-  tensor_b = tensor.shape[0]
-
-  step_b = tensor_h * tensor_w * tensor_c
-  step_c = tensor_h * tensor_w
-  step_h = tensor_h
-  step_w = 1
-
-  num_pixel   = tensor_h * tensor_w * tensor_c * tensor_b
-  tensor_np   = tensor.numpy()
-  data_tensor = np.zeros(num_pixel, dtype=np.float32)
-
-  for b in range(tensor_b):
-    for row in range(tensor_h):
-      for col in range(tensor_w):
-        for k in range(tensor_c):
-          index = b * step_b + k * step_c + row * step_h + col * step_w
-          data_tensor[index] = \
-                  Round2Fixed(tensor_np[b, row, col, k], integer, width)
-
-  with open(str(output_path), 'wb') as f:
-    for npiter in np.nditer(data_tensor):
-      f.write(npiter)
-
-
-def QStore2DTensor(tensor, output_path):
-  tensor_len  = tensor.shape[1]
-  tensor_np   = tensor.numpy()
-
-  with open(str(output_path), 'wb') as f:
-    for i in range(tensor_len):
-      f.write(Round2Fixed[0,i])
+  return x_quantize_int

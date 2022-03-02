@@ -3,17 +3,19 @@ import pdb
 import argparse
 import numpy as np
 
-def Round2Int(x, integer=16, k=32):
-  assert integer >= 1, integer
-  fraction = k - integer
-  bound = np.power(2.0, k - 1)
-  n = np.power(2.0, fraction)
-  min_val = -bound
-  max_val = bound-1
-  # x_round = np.around(x * n)
-  x_round = np.floor(x * n)
-  clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
-  return clipped_value
+from quantization import Round2Int
+
+# def Round2Int(x, integer=16, k=32):
+  # assert integer >= 1, integer
+  # fraction = k - integer
+  # bound = np.power(2.0, k - 1)
+  # n = np.power(2.0, fraction)
+  # min_val = -bound
+  # max_val = bound-1
+  # # x_round = np.around(x * n)
+  # x_round = np.floor(x * n)
+  # clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
+  # return clipped_value
 
 
 if __name__ == '__main__':

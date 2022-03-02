@@ -23,13 +23,17 @@ class OneConvNet(Model):
   def __init__(
       self,
       quantize,
+      quantize_w_int,
       quantize_w,
+      quantize_x_int,
       quantize_x):
 
     # super(OneConvNet, self).__init__(name = '')
     super().__init__(name = '')
     self.quantize = quantize
+    self.quantize_w_int = quantize_w_int
     self.quantize_w = quantize_w
+    self.quantize_x_int = quantize_x_int
     self.quantize_x = quantize_x
     self.alpha = Variable(0., trainable = False)
 
@@ -37,7 +41,9 @@ class OneConvNet(Model):
         256, 3, 1,
         # 4096, 1, 1,
         quantize = self.quantize,
+        quantize_w_int = self.quantize_w_int,
         quantize_w = self.quantize_w,
+        quantize_x_int = self.quantize_x_int,
         quantize_x = self.quantize_x,
         weight_decay = 0,
         # use_bias = True,

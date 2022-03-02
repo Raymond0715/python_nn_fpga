@@ -12,7 +12,9 @@ class QConv2D(tf.keras.layers.Layer):
       strides = [1, 1],
       padding = 'SAME',
       quantize = 'full',
+      quantize_w_int = 4,
       quantize_w = 32,
+      quantize_x_int = 4,
       quantize_x = 32,
       weight_decay = 0.0005,
       use_bias = True,
@@ -30,7 +32,7 @@ class QConv2D(tf.keras.layers.Layer):
     self.use_bias = use_bias
     if self.quantize != 'full':
       self.QuantilizeWeight, self.QuantizeActivation = \
-          QuantilizeFn(quantize_w, quantize_x)
+          QuantilizeFn(quantize_w_int, quantize_x_int, quantize_w, quantize_x)
       self.alpha = alpha # For nature gradient quantilization
     else:
       # print('[DEBUG][nn_utils.py] init QConv2D full')
