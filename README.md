@@ -95,21 +95,38 @@
 
   - 用于上板测试的数据, 以 16 位整数的格式保存为二进制文件, 相邻两个数颠倒以满足硬件内存排布的需求.
 
-  - 用于仿真的数据, 以 16 位整数的格式保存为文本文件.
+  - 用于上板测试的数据, 4位移位, 以 16 位整数的格式保存为二进制文件.
     ```sh
     python convert_h52txt.py \
     --img_w 56 \
     --img_ch 256 \
+    --quantize shift \
+    --quantize_w 4 \
     --input_file weight_56_256.h5 \
     --output_file weight_56_256_shift_process_16bit.dat \
     --bin
     ```
 
-  - 用于仿真的数据, 以 16 位整数的格式保存为文本文件.
+  - 用于上板测试的数据, 8位乘法, 以 16 位整数的格式保存为二进制文件.
     ```sh
     python convert_h52txt.py \
     --img_w 56 \
     --img_ch 256 \
+    --quantize mul \
+    --quantize_w_integer 4 \
+    --quantize_w 12 \
+    --input_file weight_56_256.h5 \
+    --output_file weight_56_256_mul_process_16bit.dat \
+    --bin
+    ```
+
+  - 用于仿真的数据, 4位移位, 以 16 位整数的格式保存为文本文件.
+    ```sh
+    python convert_h52txt.py \
+    --img_w 56 \
+    --img_ch 256 \
+    --quantize shift \
+    --quantize_w 4 \
     --input_file weight_56_256.h5 \
     --output_file weight_56_256_shift_process_16bit_sim.txt \
     --txt

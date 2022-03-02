@@ -4,7 +4,7 @@ from tensorflow.keras.layers import MaxPooling2D, BatchNormalization
 from tensorflow.keras import regularizers
 
 from nn_utils import QConv2D
-from quantization import QuantilizeFn 
+from quantization import QuantizeFn
 from main import args
 
 class AlexNet(tf.keras.Model):

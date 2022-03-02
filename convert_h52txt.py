@@ -8,146 +8,8 @@ from tensorflow import transpose as tfTranspose
 from tensorflow import reshape as tfReshape
 from tensorflow import reverse as tfReverse
 
-from utils import RoundPower24Store
+from utils import GenerateRoundFn, ConvertTensor
 from test_conv import OneConvNet
-from quantization import RoundPower2Exp
-
-import pdb
-
-
-# def RoundPower2(x, k=4):
-  # bound = np.power(2.0, k - 1)
-  # min_val = np.power(2.0, -bound + 1.0)
-  # s = np.sign(x)
-  # # # Check README.md for why `x` need to be divided by `8`
-  # # x = np.clip(np.absolute(x / 8), min_val, 1.0)
-  # x = np.clip(np.absolute(x), min_val, 1.0)
-  # p = -1 * np.around(np.log(x) / np.log(2.))
-  # if s == -1:
-    # p = 0x8 + p.astype(np.int8)
-  # return p.astype(np.int8)
-
-
-# def Round2Fixed(x, integer=16, k=32):
-  # assert integer >= 1, integer
-  # fraction = k - integer
-  # bound = np.power(2.0, k - 1)
-  # n = np.power(2.0, fraction)
-  # min_val = -bound
-  # max_val = bound
-  # # ??? Is this round function correct
-  # x_round = np.around(x * n)
-  # clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
-  # return clipped_value
-
-
-# def Store4DBinConvert(weight, f):
-  # weight_h = weight.shape[0]
-  # weight_w = weight.shape[1]
-  # weight_c = weight.shape[2]
-  # weight_f = weight.shape[3]
-  # weight_p = 64
-  # # weight_p = 1
-
-  # num_pixel = weight_f * weight_c * weight_h * weight_w
-  # step_f = weight_c * weight_h * weight_w * weight_p       # Step for filter
-  # step_c = weight_h * weight_w * weight_p                  # Step for col
-  # step_h = weight_w * weight_p                             # Step for channel
-  # step_w = weight_p                                        # Step for row
-
-  # data_weight = np.zeros(int(num_pixel), dtype=np.int16)
-  # for b in range(int(weight_f / weight_p)):
-    # for k in range(weight_c):
-      # for row in range(weight_h):
-        # for col in range(weight_w):
-          # for p in range(weight_p):
-            # index = int(
-                # b * step_f + k * step_c + row * step_h + col * step_w + p)
-            # ######################
-            # ### Shift          ###
-            # ######################
-            # data_shift = \
-                # RoundPower24Store(weight[row, col, k, b * weight_p + p], 4)
-            # data_weight[index] = data_shift.numpy().astype(np.int16)
-
-            # ######################
-            # ### Multiplication ###
-            # ######################
-            # # data_weight[index] = \
-                # # Fix2Int(
-                    # # Round2Fixed(weight[row, col, k, b * weight_p + p], 4, 12),
-                    # # 4, 12).numpy().astype(np.int16)
-
-  # if args.bin:
-    # for i in range(int(num_pixel / 2)):
-      # temp = data_weight[2 * i]
-      # data_weight[2 * i] = data_weight[2 * i + 1]
-      # data_weight[2 * i + 1] = temp
-
-    # for npiter in np.nditer(data_weight):
-      # f.write(npiter)
-
-  # else:
-    # for j in range(int(num_pixel/args.paral_in)):
-      # for i in range(args.paral_in):
-        # pixel = data_weight[j*args.paral_in+i]
-        # if pixel >= 0:
-          # pixel_str = '{:0>4x}'.format(pixel)
-        # else:
-          # pixel_str = '{:0>4x}'.format(0x10000+pixel)
-        # f.write(pixel_str)
-
-      # f.write('\n')
-
-
-# def Store1DBinConvert(weight, f):
-  # weight_c = weight.shape[0]
-
-  # data_weight = np.zeros(int(weight_c), dtype=np.int32)
-  # for b in range(int(weight_c)):
-    # data_weight[b] = Fix2Int(Round2Fixed(weight[b], 8, 24), 8, 24)
-
-  # for npiter in np.nditer(data_weight):
-    # f.write(npiter)
-
-
-# def StoreWeightBinConvert(weight, f):
-  # if len(weight.shape) == 4:
-    # print('[INFO][utils.py] Store 4D tensor {}'.format(weight.name))
-    # Store4DBinConvert(weight, f)
-  # elif len(weight.shape) == 1:
-    # print('[INFO][utils.py] Store 1D tensor {}'.format(weight.name))
-    # Store1DBinConvert(weight, f)
-  # else:
-    # print('[INFO][utils.py] Wrong weight shape!!! '
-        # 'Variable name is {}'.format(weight.name))
-
-
-def ConvertTensor(tensor, paral):
-  '''
-  Brief:
-    Return a flattened 1D tensorflow tensor.
-  '''
-  if len(tensor.shape) == 4:
-    print('[INFO][utils.py] Convert 4D tensor {}'.format(tensor.name))
-    height = tensor.shape[0]
-    width = tensor.shape[1]
-    in_channels = tensor.shape[2]
-    tensor_paral = tfReshape(
-        tensor, [height, width, in_channels, -1, paral])
-    # tensor_reorder = tfTranspose(tensor_paral, [1, 2, 4, 3, 0])
-    tensor_reorder = tfTranspose(tensor_paral, [3, 2, 0, 1, 4])
-    tensor_1d = tfReshape(tensor_reorder, [-1])
-  elif len(tensor.shape) == 1:
-    print('[INFO][utils.py] 1D tensor {}, '
-        'no need to be converted'.format(tensor.name))
-    tensor_1d = tensor
-  else:
-    print('[INFO][utils.py] Wrong tensor shape!!! '
-        'Variable name is {}'.format(tensor.name))
-    tensor_1d = None
-
-  return tensor_1d
 
 
 if __name__ == '__main__':
@@ -160,6 +22,18 @@ if __name__ == '__main__':
   parser.add_argument(
       '--paral_w', default = 64, type = int,
       help = 'Parallelism degree of weight. No need to change in most case.')
+
+  parser.add_argument(
+      '--quantize', default = 'shift',
+      help = 'Choose quantization mode. '
+      '`shfit` for shift and `mul` for multiply')
+  parser.add_argument(
+      '--quantize_w_integer', default = 4, type = int,
+      help = 'Specify integer data width of weight.')
+  parser.add_argument(
+      '--quantize_w', default = 12, type = int,
+      help = 'Specify data width of weight.')
+
   parser.add_argument(
       '--img_w', default = 56, type = int,
       help = 'Image width and height.')
@@ -198,16 +72,41 @@ if __name__ == '__main__':
     print('[INFO][convert_h52txt.py] Open file as text.')
     file_mode = 'w'
 
+  QuantizeFunc = GenerateRoundFn(
+      args.quantize_w_integer, args.quantize_w, args.quantize)
+
   with open(str(output_path), mode = file_mode) as f:
     for i, weight in enumerate(model.weights):
       weight_1d = ConvertTensor(weight, args.paral_w)
-      if weight_1d == None:
+      if weight_1d is None:
         continue
 
       if args.bin:
-        print('[INFO][convert_h52txt.py] Store weight as binary.')
+        print('[INFO][convert_h52txt.py] '
+            'Store weight {} as binary.'.format(weight.name))
         weight_reshape = \
             tfReshape(tfReverse(tfReshape(weight_1d, [-1, 2]), [1]), [-1])
-        weight_quantize = RoundPower24Store(weight_reshape)
+        weight_quantize = QuantizeFunc(weight_reshape)
         for npiter in np.nditer(weight_quantize.numpy().astype(np.int16)):
           f.write(npiter)
+
+      else:
+        print('[INFO][convert_h52txt.py] '
+            'Store weight {} as text.'.format(weight.name))
+        weight_reshape = tfReshape(weight_1d, [-1, 8])
+        weight_quantize = QuantizeFunc(weight_reshape)
+        it = np.nditer(
+            weight_quantize.numpy().astype(np.int16), flags=['multi_index'])
+        for npiter in it:
+          if it.multi_index[1] == 0:
+            data_str = ''
+
+          if npiter >= 0:
+            pixel_str = '{:0>4x}'.format(npiter)
+          else:
+            pixel_str = '{:0>4x}'.format(0x10000+npiter)
+
+          data_str = data_str + pixel_str
+
+          if it.multi_index[1] == 7 or it.finished:
+            f.write(data_str + '\n')

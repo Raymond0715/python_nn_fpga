@@ -49,7 +49,8 @@ def RoundPower2Exp(x, k=4):
   min_val = tf.math.pow(2.0, -bound + 1.0)
   s = tf.sign(x)
 
-  # Temporary. It is better to `/8` when store value.
+  # Temporary. `*8` during inference and don't change during convert.
+  # In fact, it should be `/8` during convert and don't change during inference.
   x = tf.clip_by_value(tf.math.abs(x), min_val, 1.0)
   # x = tf.clip_by_value(tf.math.abs(x * 8), min_val, 1.0)
 
@@ -74,12 +75,12 @@ def Round2Int(x, integer=16, k=32):
   return clipped_value
 
 
-def QuantilizeFn(w_int, a_int, w_bit, a_bit, flag_shift=True):
+def QuantizeFn(w_int, a_int, w_bit, a_bit, flag_shift=True):
   # def CeilPower2(x):
     # p = tf.math.ceil(tf.math.log(x) / tf.math.log(2.))
     # return tf.math.pow(2.0, p)
 
-  def QuantilizeWeight(w):
+  def QuantizeWeight(w):
     if w_bit == 1:   # BNN
       # mean = tf.reduce_mean(tf.abs(w))
       # E = tf.stop_gradient(mean)
@@ -98,7 +99,7 @@ def QuantilizeFn(w_int, a_int, w_bit, a_bit, flag_shift=True):
 
     return output
 
-  def QuantilizeActivation(x):
+  def QuantizeActivation(x):
     if a_bit == 1:   # BNN
       # mean = tf.reduce_mean(tf.abs(x))
       # E = tf.stop_gradient(mean)
@@ -111,7 +112,7 @@ def QuantilizeFn(w_int, a_int, w_bit, a_bit, flag_shift=True):
 
     return output
 
-  return QuantilizeWeight, QuantilizeActivation
+  return QuantizeWeight, QuantizeActivation
 
 
 def tangent(x, x_quantilize, alpha):

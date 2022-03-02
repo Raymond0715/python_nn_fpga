@@ -3,7 +3,7 @@ from tensorflow.keras.layers import Activation, Flatten
 from tensorflow.keras.layers import MaxPooling2D
 
 from nn_utils import QConv2D
-from quantization import QuantilizeFn 
+from quantization import QuantizeFn
 import pdb
 
 class AlexNet(tf.keras.Model):

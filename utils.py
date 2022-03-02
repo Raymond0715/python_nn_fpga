@@ -1,7 +1,7 @@
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow import math as tfMath
 
-from quantization import Round2Fixed, RoundPower2Exp
+from quantization import RoundPower2Exp, Round2Fixed
 import nn_utils
 import numpy as np
 
@@ -35,23 +35,67 @@ def MergeBN(dst, src):
   return dst
 
 
-def RoundPower24Store(x, k=4):
-  s, p = RoundPower2Exp(x, k)
-  p_minus = p * -1
-  s_pro = (s - 1) * -4
-  p_pro = s_pro + p_minus
-
-  # if s == -1:
-    # # p = 0x8 + p.astype(tfInt16)
-    # p = 0x8 + p
-
-  return p_pro
-
-
 def Fix2Int(x, integer=16, k=32):
-  # x_quantize_float = Round2Fixed(x, integer, k)
-  fractrion = k - integer
-  n = tfMath.pow(2, fraction)
-  x_quantize_int = x_quantize_float * n
+  fraction = k - integer
+  n = tfMath.pow(2.0, fraction)
+  x_quantize_int = x * n
 
   return x_quantize_int
+
+
+def GenerateRoundFn(w_int, w_bit, flag_shift):
+
+  def Round2FixedWrap(x):
+    x_quantize = Round2Fixed(x, w_int, w_bit)
+    x_int = Fix2Int(x_quantize, w_int, w_bit)
+
+    return x_int
+
+  def RoundPower2Wrap(x):
+    s, p = RoundPower2Exp(x, w_bit)
+    p_minus = p * -1
+    s_pro = (s - 1) * -4
+    p_pro = s_pro + p_minus
+
+    return p_pro
+
+  if flag_shift == 'shift':
+    print('[INFO][utilt.py] '
+        'GenerateRoundFn for shift. w_bit is {}'.format(w_bit))
+    return RoundPower2Wrap
+  elif flag_shift == 'mul':
+    print('[INFO][utilt.py] '
+        'GenerateRoundFn for multiplication. '
+        'w_int is {}. w_bit is {}.'.format(w_int, w_bit))
+    return Round2FixedWrap
+  else:
+    return None
+
+
+def ConvertTensor(tensor, paral):
+  '''
+  Brief:
+    Return a flattened 1D tensorflow tensor.
+    Especially convert tf-style weight to FPGA-style weight, which is
+      (row, col, in_channels, output_channels) ->
+      (output_channels/paral, in_channels, row, col, paral)
+  '''
+  if len(tensor.shape) == 4:
+    print('[INFO][utils.py] Convert 4D tensor {}'.format(tensor.name))
+    height = tensor.shape[0]
+    width = tensor.shape[1]
+    in_channels = tensor.shape[2]
+    tensor_paral = tfReshape(
+        tensor, [height, width, in_channels, -1, paral])
+    tensor_reorder = tfTranspose(tensor_paral, [3, 2, 0, 1, 4])
+    tensor_1d = tfReshape(tensor_reorder, [-1])
+  elif len(tensor.shape) == 1:
+    print('[INFO][utils.py] 1D tensor {}, '
+        'no need to be converted'.format(tensor.name))
+    tensor_1d = tensor
+  else:
+    print('[INFO][utils.py] Wrong tensor shape!!! '
+        'Variable name is {}'.format(tensor.name))
+    tensor_1d = None
+
+  return tensor_1d
