@@ -4,11 +4,11 @@ from pathlib import Path
 import numpy as np
 
 from tensorflow import int16 as tfInt16
-from tensorflow import transpose as tfTranspose
 from tensorflow import reshape as tfReshape
 from tensorflow import reverse as tfReverse
 
-from utils import GenerateRoundFn, ConvertTensor
+# from utils import GenerateRoundFn, ConvertTensor
+import utils
 from test_conv import OneConvNet
 
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
       help = 'Parallelism degree of weight. No need to change in most case.')
 
   parser.add_argument(
-      '--quantize', default = 'shift',
+      '--quantize', default = 'mul',
       help = 'Choose quantization mode. '
       '`shfit` for shift and `mul` for multiply')
   parser.add_argument(
@@ -72,12 +72,12 @@ if __name__ == '__main__':
     print('[INFO][convert_h52txt.py] Open file as text.')
     file_mode = 'w'
 
-  QuantizeFunc = GenerateRoundFn(
+  QuantizeFunc = utils.GenerateRoundFn(
       args.quantize_w_integer, args.quantize_w, args.quantize)
 
   with open(str(output_path), mode = file_mode) as f:
     for i, weight in enumerate(model.weights):
-      weight_1d = ConvertTensor(weight, args.paral_w)
+      weight_1d = utils.ConvertTensor(weight, [3, 2, 0, 1, 4], args.paral_w)
       if weight_1d is None:
         continue
 
