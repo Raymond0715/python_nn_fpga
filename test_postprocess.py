@@ -5,23 +5,30 @@ import numpy as np
 from tensorflow import Variable
 from tensorflow import convert_to_tensor as tfConverttoTensor
 from tensorflow import transpose as tfTranspose
+from tensorflow import reshape as tfReshape
+from tensorflow import reverse as tfReverse
 from tensorflow import float32 as tfFloat32
 from tensorflow.keras import Model
 from tensorflow.keras.activations import relu as tfReLu
 # from tensorflow.keras.layers import Dense as Dense
 
 from nn_utils import QConv2D
+import utils
 
 class OneConvNet(Model):
   def __init__(
       self,
       quantize,
+      quantize_w_int,
       quantize_w,
+      quantize_x_int,
       quantize_x):
 
     super().__init__(name = '')
     self.quantize = quantize
+    self.quantize_w_int = quantize_w_int
     self.quantize_w = quantize_w
+    self.quantize_x_int = quantize_x_int
     self.quantize_x = quantize_x
     self.alpha = Variable(0., trainable = False)
 
@@ -29,7 +36,9 @@ class OneConvNet(Model):
         256, 3, 1,
         # 4096, 1, 1,
         quantize = self.quantize,
+        quantize_w_int = self.quantize_w_int,
         quantize_w = self.quantize_w,
+        quantize_x_int = self.quantize_x_int,
         quantize_x = self.quantize_x,
         weight_decay = 0,
         use_bias = False,
@@ -73,27 +82,12 @@ def Round2Fixed(x, integer=16, k=32):
   return clipped_value
 
 def Store4DTensor(tensor, output_path, integer, width):
-  tensor_h = tensor.shape[1]
-  tensor_w = tensor.shape[2]
-  tensor_c = tensor.shape[3]
-  tensor_b = tensor.shape[0]
+  img_transpose = tfTranspose(tensor, perm = [1, 2, 0, 3])
 
-  step_b = tensor_h * tensor_w * tensor_c
-  step_c = tensor_h * tensor_w
-  step_h = tensor_h
-  step_w = 1
+  # (row, col, 1, ch, 1) -> (1, 1, ch, row, col)
+  data_1d = utils.ConvertTensor(img_transpose, [2, 4, 3, 0, 1], 1)
 
-  num_pixel   = tensor_h * tensor_w * tensor_c * tensor_b
-  tensor_np   = tensor.numpy()
-  data_tensor = np.zeros(num_pixel, dtype=np.float32)
-
-  for b in range(tensor_b):
-    for row in range(tensor_h):
-      for col in range(tensor_w):
-        for k in range(tensor_c):
-          index = b * step_b + k * step_c + row * step_h + col * step_w
-          data_tensor[index] = \
-                  Round2Fixed(tensor_np[b, row, col, k], integer, width)
+  data_tensor = Round2Fixed(data_1d, integer, width)
 
   with open(str(output_path), 'wb') as f:
     for npiter in np.nditer(data_tensor):
@@ -145,8 +139,9 @@ if __name__ == '__main__':
 
   # quantize
   parser.add_argument(
-      '--quantize', default = 'ste',
-      help = 'Choose quantization mode.')
+      '--quantize', default = 'mul',
+      help = 'Choose quantization mode. '
+      '`shfit` for shift and `mul` for multiply')
   parser.add_argument(
       '--quantize_w_integer', default = 4, type = int,
       help = 'Specify integer data width of weight.')
@@ -228,7 +223,9 @@ if __name__ == '__main__':
   # Instantiate model.
   print('[INFO][test_postprocess.py] Instantiate model.')
   input_tensor_shape = (None, img_size, img_size, img_channels)
-  model = OneConvNet(args.quantize, args.quantize_w, args.quantize_x)
+  model = OneConvNet(
+      args.quantize, args.quantize_w_integer, args.quantize_w,
+      args.quantize_x_integer, args.quantize_x)
   model.build(input_tensor_shape)
 
   # Load weight data.

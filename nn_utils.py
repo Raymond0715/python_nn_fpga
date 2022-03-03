@@ -11,7 +11,7 @@ class QConv2D(tf.keras.layers.Layer):
       kernel_size,
       strides = [1, 1],
       padding = 'SAME',
-      quantize = 'full',
+      quantize = 'mul',
       quantize_w_int = 4,
       quantize_w = 32,
       quantize_x_int = 4,
@@ -21,7 +21,6 @@ class QConv2D(tf.keras.layers.Layer):
       name = None,
       alpha = None):
 
-    # super(QConv2D, self).__init__()
     super().__init__()
     self.kernel_depth = kernel_depth
     self.kernel_size = kernel_size
@@ -30,13 +29,10 @@ class QConv2D(tf.keras.layers.Layer):
     self.quantize = quantize
     self.weight_decay = weight_decay
     self.use_bias = use_bias
-    if self.quantize != 'full':
-      self.QuantizeWeight, self.QuantizeActivation = \
-          QuantizeFn(quantize_w_int, quantize_x_int, quantize_w, quantize_x)
-      self.alpha = alpha # For nature gradient quantilization
-    else:
-      # print('[DEBUG][nn_utils.py] init QConv2D full')
-      pass
+    self.QuantizeWeight, self.QuantizeActivation = \
+        QuantizeFn(
+            quantize_w_int, quantize_x_int, quantize_w, quantize_x, quantize)
+    self.alpha = alpha # For nature gradient quantilization
 
   def build(self, input_shape):
     self.filters = self.add_weight(
@@ -48,22 +44,17 @@ class QConv2D(tf.keras.layers.Layer):
         initializer = tf.keras.initializers.GlorotUniform(),
         regularizer = regularizers.l2(self.weight_decay),
         name = 'weights')
-        # regularizer = regularizers.l2(self.weight_decay))
 
     if self.use_bias:
       self.bias = self.add_weight(
           shape = [self.kernel_depth],
-          # initializer = tf.keras.initializers.Zeros(),
-          # initializer = 'random_normal',
           initializer = tf.keras.initializers.GlorotUniform(),
           name = 'bias')
 
   def call(self, input_tensor):
     if self.quantize != 'full':
-      # print('[DEBUG][nn_utils.py] QConv2D call ng')
       filters = tf.clip_by_value(self.filters, -1, 1)
       quantize_filters = self.QuantizeWeight(filters)
-      # quantize_filters = self.QuantizeWeight(self.filters)
       filters = tangent(self.filters, quantize_filters, self.alpha)
       input_tensor_quantize = self.QuantizeActivation(input_tensor)
       input_tensor = tangent(
@@ -71,7 +62,6 @@ class QConv2D(tf.keras.layers.Layer):
       if self.use_bias:
         bias = self.QuantizeActivation(self.bias)
     else:
-      # print('[DEBUG][nn_utils.py] QConv2D call full')
       filters = self.filters
       if self.use_bias:
         bias = self.bias
@@ -81,8 +71,5 @@ class QConv2D(tf.keras.layers.Layer):
 
     if self.use_bias:
       output = tf.nn.bias_add(output, bias)
-
-    # if self.quantize != 'full':
-      # output = self.QuantizeActivation(output)
 
     return output
