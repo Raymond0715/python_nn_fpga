@@ -263,11 +263,7 @@ if __name__ == '__main__':
       args.quantize_x_integer + args.quantize_w_integer,
       args.quantize_x + args.quantize_w)
 
-  for row in range(output_conv_h):
-    for col in range(output_conv_w):
-      for k in range(output_conv_c):
-        output_bias[0, row, col, k] = \
-            output_conv_quantize[0, row, col, k] + bias_quantize[k]
+  output_bias = (output_conv_quantize + bias_quantize).astype(np.float32)
 
   print('[INFO][test_postprocess.py] Store output of bias.')
   if len(output_bias.shape) == 4:
