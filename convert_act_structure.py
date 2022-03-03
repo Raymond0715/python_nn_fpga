@@ -6,7 +6,6 @@ from tensorflow import convert_to_tensor as tfConverttoTensor
 from tensorflow import transpose as tfTranspose
 from tensorflow import reshape as tfReshape
 from tensorflow import float32 as tfFloat32
-from tensorflow import reverse as tfReverse
 
 import utils
 
@@ -51,22 +50,17 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # PARAMETER
-  paral_in = args.paral_in
-  img_w = args.img_size
-  img_h = args.img_size
-  img_ch = args.img_channels
-
   dat_raw_path = Path('.') / 'fig' / args.input
   dat_path = Path('.') / 'fig' / args.output
 
   img_raw = np.fromfile(dat_raw_path, dtype=np.float32)
   img_tf = tfConverttoTensor(img_raw, dtype=tfFloat32)
-  # img_raw = np.reshape(img_raw, (img_ch, img_w, img_h))
-  img_reshape = tfReshape(img_tf, [1, img_ch, img_h, img_w])
+  img_reshape = tfReshape(
+      img_tf, [1, args.img_channels, args.img_size, args.img_size])
   img_transpose = tfTranspose(img_reshape, perm = [2, 3, 0, 1])
 
   # (row, col, 1, ch/paral, paral) -> (1, row, ch/paral, col, paral)
-  data_1d = utils.ConvertTensor(img_transpose, [2, 0, 3, 1, 4], paral_in)
+  data_1d = utils.ConvertTensor(img_transpose, [2, 0, 3, 1, 4], args.paral_in)
 
   if args.bin:
     print('[INFO][convert_act_structure.py] Open file as binary.')

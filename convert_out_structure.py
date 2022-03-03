@@ -1,21 +1,13 @@
 from pathlib import Path
-import pdb
 import argparse
 import numpy as np
 
-from quantization import Round2Int
+from tensorflow import convert_to_tensor as tfConverttoTensor
+from tensorflow import transpose as tfTranspose
+from tensorflow import reshape as tfReshape
+from tensorflow import float32 as tfFloat32
 
-# def Round2Int(x, integer=16, k=32):
-  # assert integer >= 1, integer
-  # fraction = k - integer
-  # bound = np.power(2.0, k - 1)
-  # n = np.power(2.0, fraction)
-  # min_val = -bound
-  # max_val = bound-1
-  # # x_round = np.around(x * n)
-  # x_round = np.floor(x * n)
-  # clipped_value = np.clip(x_round, min_val, max_val).astype(np.int32)
-  # return clipped_value
+import utils
 
 
 if __name__ == '__main__':
@@ -49,39 +41,26 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   # Parameter
-  PARAL_OUT = args.paral_out
-
-  integer = args.quantize_x_integer
-  width = args.quantize_x
-
-  img_w = args.img_size
-  img_h = args.img_size
-  img_ch = args.img_channels
-  num_pixel = img_w * img_h * img_ch
-
-  sp = 1
-  sw = PARAL_OUT
-  sc = img_w * PARAL_OUT
-  sh = img_ch * img_w
-
   dat_raw_path = \
       Path('.') / 'dat' / args.directory / args.input
   dat_path     = \
       Path('.') / 'dat' / args.directory / args.output
 
-  # main
   img_raw = np.fromfile(dat_raw_path, dtype=np.float32)
-  img_raw = np.reshape(img_raw, (img_ch, img_w, img_h))
+  img_tf = tfConverttoTensor(img_raw, dtype=tfFloat32)
+  img_reshape = tfReshape(
+      img_tf, [1, args.img_channels, args.img_size, args.img_size])
+  img_transpose = tfTranspose(img_reshape, perm = [2, 3, 0, 1])
 
-  data_img = np.zeros(num_pixel, dtype = np.int32)
+  # (row, col, 1, ch/paral, paral) -> (1, row, ch/paral, col, paral)
+  data_1d = utils.ConvertTensor(img_transpose, [2, 0, 3, 1, 4], args.paral_out)
 
-  for row in range(img_h):
-    for k in range(int(img_ch / PARAL_OUT)):
-      for col in range(img_w):
-        for p in range(PARAL_OUT):
-          data_img[row * sh + k * sc + col * sw + p * sp] = \
-              Round2Int(img_raw[k * PARAL_OUT + p, row, col], integer, width)
+  QuantizeFunc = utils.GenerateRoundFn(
+      args.quantize_x_integer, args.quantize_x, 'mul')
 
   with open(dat_path, 'wb') as f:
-    for npiter in np.nditer(data_img):
+    print('[INFO][convert_out_structure.py] '
+        'Store activation as binary for on-board test.')
+    data_quantize = QuantizeFunc(data_1d)
+    for npiter in np.nditer(data_quantize.numpy().astype(np.int32)):
       f.write(npiter)
