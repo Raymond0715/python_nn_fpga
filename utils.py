@@ -108,3 +108,26 @@ def ConvertTensor(tensor, axis, paral):
     tensor_1d = None
 
   return tensor_1d
+
+
+def Store4DTensor(tensor, output_path, integer, width):
+  # Activation tensor.
+  # (batch, row, col, channels) -> (row, col, batch, channels)
+  img_transpose = tfTranspose(tensor, perm = [1, 2, 0, 3])
+
+  # (row, col, 1, ch, 1) -> (1, 1, ch, row, col)
+  data_1d = ConvertTensor(img_transpose, [2, 4, 3, 0, 1], 1)
+
+  data_tensor = Round2Fixed(data_1d, integer, width)
+
+  with open(str(output_path), 'wb') as f:
+    for npiter in np.nditer(data_tensor.numpy().astype(np.float32)):
+      f.write(npiter)
+
+def Store2DTensor(tensor, output_path, integer, width):
+
+  tensor_quantize = Round2Fixed(tensor, integer, width)
+
+  with open(str(output_path), 'wb') as f:
+    for npiter in np.nditer(tensor_quantize.numpy().astype(np.float32)):
+      f.write(npiter)

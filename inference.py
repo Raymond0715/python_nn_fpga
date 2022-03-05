@@ -3,11 +3,14 @@ import argparse
 import pdb
 import numpy as np
 
-import tensorflow as tf
-from models.yolo_tiny_layer1 import GenerateModel
+# import tensorflow as tf
+from tensorflow import convert_to_tensor as tfConverttoTensor
+from tensorflow import transpose as tfTranspose
+from tensorflow import float32 as tfFloat32
+from models.yolo_tiny import GenerateModel
 
 import nn_utils
-from utils import MergeBN, QStore4DTensor, QStore2DTensor
+import utils
 
 
 if __name__ == '__main__':
@@ -27,25 +30,25 @@ if __name__ == '__main__':
 
   # ckpt
   parser.add_argument(
-      '--ckpt', default = 'yolo.h5',
+      '--ckpt', default = 'yolo_tiny.h5',
       help = 'Checkpoint name. Set as None if there is no existing ckpt' \
           'randomly.')
   parser.add_argument(
       '--ckpt_store', default = 'None',
       help = 'Output ckpt name. Set as None if don\'t store model.')
   parser.add_argument(
-      '--merge_bn', default = False, action = 'store_true',
+      '--merge_bn', action = 'store_true',
       help = 'Choose if merge bn layer. Default is False.')
 
   # quantize
   parser.add_argument(
-      '--quantize', default = 'ste',
+      '--quantize', default = 'shift',
       help = 'Choose quantization mode.')
   parser.add_argument(
       '--quantize_w_integer', default = 4, type = int,
       help = 'Specify integer data width of weight.')
   parser.add_argument(
-      '--quantize_w', default = 8, type = int,
+      '--quantize_w', default = 4, type = int,
       help = 'Specify data width of weight.')
   parser.add_argument(
       '--quantize_x_integer', default = 3, type = int,
@@ -53,28 +56,48 @@ if __name__ == '__main__':
   parser.add_argument(
       '--quantize_x', default = 8, type = int,
       help = 'Specify data width of input tensor.')
+  parser.add_argument(
+      '--quantize_o_integer', default = 7, type = int,
+      help = 'Specify integer data width of input tensor.')
+  parser.add_argument(
+      '--quantize_o', default = 16, type = int,
+      help = 'Specify data width of input tensor.')
 
+  parser.add_argument(
+      '--output_directory', default = 'yolo',
+      help = 'Output directory.')
   parser.add_argument(
       '--output', default = 'output.dat',
       help = 'Output file name. Default is output_merge.dat')
+  parser.set_defaults(merge_bn=False)
   args = parser.parse_args()
 
   # Path
-  image_path = Path('.') / 'fig' / args.image
+  image_path = Path('.') / 'fig' / args.img
   ckpt_path = Path('.') / 'ckpt' / args.ckpt
   ckpt_store_path = Path('.') / 'ckpt' / args.ckpt_store
-  output_path = Path('.') / 'dat' / args.dat
+  output_path = Path('.') / 'dat' / args.output_directory / args.output
 
-  # Read Image
-  img = tf.io.read_file(str(image_path))
-  img = tf.image.decode_jpeg(img, channels = args.img_channels)
-  img = tf.image.resize(img, [args.img_size, args.img_size])
-  img = tf.math.divide(tf.math.add(tf.cast(img, tf.float32), -127), 128)
-  img = tf.reshape(img, [1, args.img_size, args.img_size, args.img_channels])
+  # # Read Image
+  # img = tf.io.read_file(str(image_path))
+  # img = tf.image.decode_jpeg(img, channels = args.img_channels)
+  # img = tf.image.resize(img, [args.img_size, args.img_size])
+  # img = tf.math.divide(tf.math.add(tf.cast(img, tf.float32), -127), 128)
+  # img = tf.reshape(img, [1, args.img_size, args.img_size, args.img_channels])
+
+  # Read image .bin
+  img_size = args.img_size
+  img_channels = args.img_channels
+  img = np.fromfile(image_path, dtype = np.float32)
+  img = np.reshape(img, (1, img_channels, img_size, img_size))
+  img = tfConverttoTensor(img, dtype=tfFloat32)
+  img = tfTranspose(img, perm = [0, 2, 3, 1])
 
   # Build and load model
   input_tensor_shape = (None, args.img_size, args.img_size, args.img_channels)
-  model = GenerateModel(args.quantize, args.quantize_w, args. quantize_x)
+  model = GenerateModel(
+      args.quantize, args.quantize_w_integer, args.quantize_w,
+      args.quantize_x_integer, args.quantize_x)
   model.build(input_tensor_shape)
   if args.ckpt != 'None':
     print('[INFO][inference.py] Load model:', ckpt_path)
@@ -84,7 +107,7 @@ if __name__ == '__main__':
     print('[INFO][inference.py] Model merge BN layer.')
     # model_merge_bn.build(input_tensor_shape)
     temp = model_merge_bn(img)
-    MergeBN(model_merge_bn, model)
+    utils.MergeBN(model_merge_bn, model)
     output = model_merge_bn(img)
   else:
     print('[INFO][inference.py] Model doesn\'t merge BN layer.')
@@ -92,9 +115,11 @@ if __name__ == '__main__':
 
   # Store output
   if len(output.numpy().shape) == 4:
-    Store4DTensor(output, output_path)
+    utils.Store4DTensor(
+        output, output_path, args.quantize_o_integer, args.quantize_o)
   else:
-    Store2DTensor(output, output_path)
+    utils.Store2DTensor(
+        output, output_path, args.quantize_o_integer, args.quantize_o)
 
   # Store output ckpt
   if args.ckpt_store != 'None':
@@ -104,4 +129,5 @@ if __name__ == '__main__':
       model_merge_bn.save_weights(str(ckpt_store_path))
     else:
       print('[INFO][inference.py] Store not merge bn output ckpt:',
+          args.ckpt_store)
       model.save_weights(str(ckpt_store_path))

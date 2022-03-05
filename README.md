@@ -8,9 +8,29 @@
 
 记录常见用于生成测试数据的命令以及相关代码的修改.
 
-- `inference.py`
+### 1.1.1 `inference.py`
 
-- `test_postprocess.py`
+  - 测试 $56 \times 56 \times 256$ 数据, 测试代码正确
+    ```sh
+    python inference.py \
+    --img img_56_256.bin \
+    --img_size 56 \
+    --img_channels 256 \
+    --ckpt weight_56_256.h5 \
+    --output test4yolo_out_56_256.dat
+    ```
+
+  - 测试 $208 \times 208 \times 16$ 移位, 量化参数和 `test_postprocess.py` 相同
+    ```sh
+    python inference.py \
+    --img img_208_16.bin \
+    --img_size 208 \
+    --img_channels 16 \
+    --ckpt weight_208_16.h5 \
+    --output out_208_16.dat
+    ```
+
+### 1.1.2 `test_postprocess.py`
 
   - **乘法和移位需要修改的代码**:
 
@@ -62,7 +82,7 @@
     --output_relu out_56_256_leakyrelu_layer2.dat
     ```
 
-- `convert_act_structure.py`
+### 1.1.3 `convert_act_structure.py`
 
   - $56 \times 56 \times 256$; 乘法; w4a12; 激活值整数位宽为4.
     ```sh
@@ -93,7 +113,7 @@
     --txt
     ```
 
-- `convert_h52txt.py`
+### 1.1.4 `convert_h52txt.py`
 
   - 乘法和移位需要修改函数 `Store4DBinConvert` 中有关量化函数的部分.
 
@@ -138,7 +158,7 @@
     --txt
     ```
 
-- `convert_bias_bin2txt.py`
+### 1.1.5 `convert_bias_bin2txt.py`
 
   - 将存 bias 的二进制文件转换为文本文件
 
@@ -152,7 +172,7 @@
     --output_file bias_56_256_sim.txt
     ```
 
-- `convert_out_structure.py`
+### 1.1.6 `convert_out_structure.py`
 
   - 数据位宽变化时, 需要修改 `--paral_out` 参数.
 
@@ -182,6 +202,19 @@
     --quantize_x 8
     ```
 
+  - $208 \times 208 \times 16$; 激活计算结果; 移位; a8; 激活值整数位宽为3.
+    ```sh
+    python convert_out_structure.py \
+    --directory yolo \
+    --paral_out 8 \
+    --input out_208_16.dat \
+    --output out_208_16_process.dat \
+    --img_size 208 \
+    --img_channels 32 \
+    --quantize_x_integer 3 \
+    --quantize_x 8
+    ```
+
 
 ## 1.2 常用数字
 
@@ -189,6 +222,8 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
 
 # 2 数据说明
+
+各种数据排布的说明.
 
   - 按照 $(batch, channels, rows, columns)$ 排布的文件有:
 
@@ -209,6 +244,7 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 # 3 脚本简介
 
 简要介绍测试数据生成工程中各个脚本的功能
+
 
 ## 3.1 `create_img.py`
 
@@ -257,6 +293,7 @@ $56 \times 56 \times 256 = 0x8318\_8000$
     --img_size 56 --img_channels 256
     ```
 
+
 ## 3.3 `test_postprocess.py`
 
   - 生成后处理计算测试数据数据
@@ -287,10 +324,12 @@ $56 \times 56 \times 256 = 0x8318\_8000$
     python convert_act_structure.py
     ```
 
+
 ## 3.5 `convert_out_structure.py`
 
   - 将输出数据转换为适配FPGA计算的数据排布格式，代码风格与结构和
     `convert_act_structure.py` 极其相似
+
 
 ## 3.6 `convert_h52txt.py`
 
@@ -318,7 +357,6 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 # 4 Architecture
 
 ## 4.1 AlexNet Architecture
-
 | Layer | Input layer                      | Output layer                     | Operation                                        |
 | ----- | -------------------------------- | -------------------------------- | ------------------------------------------------ |
 | 1     | $3 \times 224 \times 224, 150528$ | $64 \times 54 \times 54,186624$  | $conv: 64 \times 3 \times 11 \times 11, step: 4$ |
@@ -335,7 +373,6 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
 
 ## 4.2 VGG-16 Architecture
-
 - Convolution part
 
 | Layer | Input Layer(3.5M/8bits)              | Output Layer(3.5M/8bits)             | Operation (7M/4bits)                |
@@ -375,7 +412,6 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
 
 ## 4.3 YOLOv3 tiny
-
 | Layer   | Input Layer                                                | Output Layer                       | Operation                                        | ram cost           |
 | ------- | ---------------------------------------------------------- | ---------------------------------- | ------------------------------------------------ | ------------------ |
 | 1       | $3 \times 416 \times 416, 519168$                          | $16 \times 416 \times 416,2768896$ | $conv:3 \times 16 \times 3 \times 3,432$         | 519168, **432**    |

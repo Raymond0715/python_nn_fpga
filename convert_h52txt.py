@@ -7,7 +7,6 @@ from tensorflow import int16 as tfInt16
 from tensorflow import reshape as tfReshape
 from tensorflow import reverse as tfReverse
 
-# from utils import GenerateRoundFn, ConvertTensor
 import utils
 from test_conv import OneConvNet
 

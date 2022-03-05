@@ -82,6 +82,8 @@ def Round2Fixed(x, integer=16, k=32):
   return clipped_value
 
 def Store4DTensor(tensor, output_path, integer, width):
+  # Activation tensor.
+  # (batch, row, col, channels) -> (row, col, batch, channels)
   img_transpose = tfTranspose(tensor, perm = [1, 2, 0, 3])
 
   # (row, col, 1, ch, 1) -> (1, 1, ch, row, col)
