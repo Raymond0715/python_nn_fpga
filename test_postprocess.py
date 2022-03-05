@@ -154,6 +154,12 @@ if __name__ == '__main__':
   parser.add_argument(
       '--quantize_x', default = 12, type = int,
       help = 'Specify data width of input tensor.')
+  parser.add_argument(
+      '--quantize_o_integer', default = 4, type = int,
+      help = 'Specify integer data width of input tensor.')
+  parser.add_argument(
+      '--quantize_o', default = 12, type = int,
+      help = 'Specify data width of input tensor.')
 
   # output
   parser.add_argument(
@@ -203,19 +209,14 @@ if __name__ == '__main__':
     print('[INFO][test_postprocess.py] Read bias:', ckpt_bias_path)
     bias_quantize = \
         np.fromfile(ckpt_bias_path, dtype = np.int32) \
-        / np.power(2,
-            args.quantize_x + args.quantize_w
-            - args.quantize_x_integer - args.quantize_w_integer)
+        / np.power(2, args.quantize_o - args.quantize_o_integer)
   else:
     print('[INFO][test_postprocess.py] Write bias:', ckpt_bias_store_path)
     bias_quantize = Round2Fixed(
         np.random.rand(args.ckpt_filter_num).astype(np.float32) - 0.5,
-        args.quantize_x_integer + args.quantize_w_integer,
-        args.quantize_x + args.quantize_w)
+        args.quantize_o_integer, args.quantize_o)
     bias_int = Round2Int(
-        bias_quantize,
-        args.quantize_x_integer + args.quantize_w_integer,
-        args.quantize_x + args.quantize_w)
+        bias_quantize, args.quantize_o_integer, args.quantize_o)
     with open(str(ckpt_bias_store_path), 'wb') as f:
       for bias_data in np.nditer(bias_int):
         f.write(bias_data)
@@ -243,10 +244,7 @@ if __name__ == '__main__':
   print('[INFO][test_postprocess.py] Store output of convolution.')
   if len(output_conv.numpy().shape) == 4:
     Store4DTensor(
-        output_conv,
-        output_conv_path,
-        args.quantize_x_integer + args.quantize_w_integer,
-        args.quantize_x + args.quantize_w)
+        output_conv, output_conv_path, args.quantize_o_integer, args.quantize_o)
   else:
     print('[ERROR][test_postprocess.py] Fail to store output_conv.')
 
@@ -259,9 +257,7 @@ if __name__ == '__main__':
       (1, output_conv_h, output_conv_w, output_conv_c),
       dtype=np.float32)
   output_conv_quantize = Round2Fixed(
-      output_conv,
-      args.quantize_x_integer + args.quantize_w_integer,
-      args.quantize_x + args.quantize_w)
+      output_conv, args.quantize_o_integer, args.quantize_o)
 
   output_bias = (output_conv_quantize + bias_quantize).astype(np.float32)
 
@@ -269,9 +265,7 @@ if __name__ == '__main__':
   if len(output_bias.shape) == 4:
     Store4DTensor(
         tfConverttoTensor(output_bias),
-        output_bias_path,
-        args.quantize_x_integer + args.quantize_w_integer,
-        args.quantize_x + args.quantize_w)
+        output_bias_path, args.quantize_o_integer, args.quantize_o)
   else:
     print('[ERROR][test_postprocess.py] Fail to store output_bias.')
 
@@ -281,9 +275,6 @@ if __name__ == '__main__':
 
   if len(output_relu.numpy().shape) == 4:
     Store4DTensor(
-        output_relu,
-        output_relu_path,
-        args.quantize_x_integer + args.quantize_w_integer,
-        args.quantize_x + args.quantize_w)
+        output_relu, output_relu_path, args.quantize_o_integer, args.quantize_o)
   else:
     print('[ERROR][test_postprocess.py] Fail to store output_relu.')

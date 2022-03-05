@@ -40,27 +40,17 @@ def Round2Fixed(x, integer=16, k=32):
   return clipped_value
 
 
-# def RoundPower2(x, k=4):
-  # bound = tf.math.pow(2.0, k - 1)
-  # min_val = tf.math.pow(2.0, -bound + 1.0)
-  # s = tf.sign(x)
-  # # x = tf.clip_by_value(tf.math.abs(x), min_val, 1.0)
-  # x = tf.clip_by_value(tf.math.abs(x * 8), min_val, 1.0)
-  # p = QRound(tf.math.log(x) / tf.math.log(2.))
-  # return s * tf.math.pow(2.0, p)
-
-
 def RoundPower2Exp(x, k=4):
   bound = tf.math.pow(2.0, k - 1)
   min_val = tf.math.pow(2.0, -bound + 1.0)
   s = tf.sign(x)
 
+  x = tf.clip_by_value(tf.math.abs(x), min_val, 1.0)
+
   # Temporary. `*8` during inference and don't change during convert.
   # In fact, it should be `/8` during convert and don't change during inference.
-  x = tf.clip_by_value(tf.math.abs(x), min_val, 1.0)
-  # x = tf.clip_by_value(tf.math.abs(x * 8), min_val, 1.0)
-
-  p = QRound(tf.math.log(x) / tf.math.log(2.))
+  # p = QRound(tf.math.log(x) / tf.math.log(2.))
+  p = QRound(tf.math.log(x * 8) / tf.math.log(2.))
 
   return s, p
 

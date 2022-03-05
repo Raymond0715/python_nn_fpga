@@ -27,29 +27,35 @@
     python test_postprocess.py
     ```
 
-  - $56 \times 56 \times 256$; 移位; w4a8; 激活值整数位宽为3; 下述设置中, `quantize_w_integer` 和 `quantize_w` 为移位操作等价为乘法操作后的值.
+  - $56 \times 56 \times 256$; 移位; w4a8; 输入整数位宽为3; 下述设置中, `quantize_w_integer` 不生效, 输入值为16位, 整数位宽为7.
     ```sh
     python test_postprocess.py \
     --ckpt_directory post_process_bias_shift \
+    --quantize shift \
     --quantize_w_integer 4 \
-    --quantize_w 8 \
+    --quantize_w 4 \
     --quantize_x_integer 3 \
     --quantize_x 8 \
+    --quantize_o_integer 7 \
+    --quantize_o 16 \
     --output_directory post_process_shift \
     --output_conv out_56_256_conv.dat \
     --output_bias out_56_256_bias.dat \
     --output_relu out_56_256_leakyrelu.dat
     ```
 
-  - $56 \times 56 \times 256$; 移位; w4a8; 激活值整数位宽为3; 下述设置中, `quantize_w_integer` 和 `quantize_w` 为移位操作等价为乘法操作后的值; 第二层.
+  - $56 \times 56 \times 256$; 移位; w4a8; 激活值整数位宽为3; 下述设置中, `quantize_w_integer` 不生效; 第二层; 输入值为16位, 整数位宽为7.
     ```sh
     python test_postprocess.py \
     --img_dat img_56_256_layer2_shift.dat \
     --ckpt_directory post_process_bias_shift \
+    --quantize shift \
     --quantize_w_integer 4 \
-    --quantize_w 8 \
+    --quantize_w 4 \
     --quantize_x_integer 3 \
     --quantize_x 8 \
+    --quantize_o_integer 7 \
+    --quantize_o 16 \
     --output_directory post_process_shift \
     --output_conv out_56_256_conv_layer2.dat \
     --output_bias out_56_256_bias_layer2.dat \
