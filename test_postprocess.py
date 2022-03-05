@@ -155,10 +155,10 @@ if __name__ == '__main__':
       '--quantize_x', default = 12, type = int,
       help = 'Specify data width of input tensor.')
   parser.add_argument(
-      '--quantize_o_integer', default = 4, type = int,
+      '--quantize_o_integer', default = 8, type = int,
       help = 'Specify integer data width of input tensor.')
   parser.add_argument(
-      '--quantize_o', default = 12, type = int,
+      '--quantize_o', default = 24, type = int,
       help = 'Specify data width of input tensor.')
 
   # output
