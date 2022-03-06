@@ -10,6 +10,7 @@
 
 ### 1.1.1 `inference.py`
 
+
   - 测试 $56 \times 56 \times 256$ 数据, 测试代码正确
     ```sh
     python inference.py \
@@ -114,6 +115,7 @@
     ```
 
 ### 1.1.4 `convert_h52txt.py`
+`convert_h52txt.py` will create two output file, which separately contain weight data and bias data. Bias data will be stored in the same format as `test_postprocess.py`, which means bias data file need to be processed by script `convert_bias_bin2txt.py`.
 
   - 乘法和移位需要修改函数 `Store4DBinConvert` 中有关量化函数的部分.
 
@@ -129,7 +131,7 @@
     --quantize shift \
     --quantize_w 4 \
     --input_file weight_56_256.h5 \
-    --output_file weight_56_256_shift_process_16bit.dat \
+    --output_file_weight weight_56_256_shift_process_16bit.dat \
     --bin
     ```
 
@@ -142,7 +144,7 @@
     --quantize_w_integer 4 \
     --quantize_w 12 \
     --input_file weight_56_256.h5 \
-    --output_file weight_56_256_mul_process_16bit.dat \
+    --output_file_weight weight_56_256_mul_process_16bit.dat \
     --bin
     ```
 
@@ -154,9 +156,27 @@
     --quantize shift \
     --quantize_w 4 \
     --input_file weight_56_256.h5 \
-    --output_file weight_56_256_shift_process_16bit_sim.txt \
+    --output_file_weight weight_56_256_shift_process_16bit_sim.txt \
     --txt
     ```
+
+  - YOLO 用于上板测试的数据, $3 \times 3 \times 16 \times 32$, 4 位移位, 以 16 位整数的格式保存为二进制文件. 由于默认权重转换的并行度是64, 大于这一层的输出通道数, 因此这一层的数据需要特殊处理. 设置`paral_w` 为 32. 得到的结果用 `assign4hw.py` 处理一次.
+    ```sh
+    python convert_h52txt.py \
+    --img_w 208 \
+    --img_ch 16 \
+    --paral_w 32 \
+    --quantize shift \
+    --quantize_w_integer 4 \
+    --quantize_w 4 \
+    --quantize_b_integer 7 \
+    --quantize_w 16 \
+    --input_file weight_208_16.h5 \
+    --output_file_weight weight_208_16_shift_process_16bit.dat \
+    --output_file_bias bias_208_16_shift_process_16bit.dat \
+    --bin
+    ```
+
 
 ### 1.1.5 `convert_bias_bin2txt.py`
 
