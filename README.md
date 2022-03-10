@@ -10,6 +10,15 @@
 
 ### 1.1.1 `inference.py`
 
+  - 测试没有上采样的 YOLO 的一支:
+    ```sh
+    python inference.py \
+    --img img_416_8.bin \
+    --img_size 416 \
+    --img_channels 8 \
+    --ckpt yolo_tiny_bench1.h5 \
+    --output out_yolo_bench1.dat
+    ```
 
   - 测试 $56 \times 56 \times 256$ 数据, 测试代码正确
     ```sh
@@ -30,6 +39,17 @@
     --ckpt weight_208_16.h5 \
     --output out_208_16.dat
     ```
+
+  - 测试 $104 \times 104 \times 32$ 移位, 量化参数和 `test_postprocess.py` 相同
+    ```sh
+    python inference.py \
+    --img img_104_32.bin \
+    --img_size 104 \
+    --img_channels 32 \
+    --ckpt weight_104_32.h5 \
+    --output out_104_32.dat
+    ```
+
 
 ### 1.1.2 `test_postprocess.py`
 
@@ -85,6 +105,8 @@
 
 ### 1.1.3 `convert_act_structure.py`
 
+  - 对于输入通道小于8的情况, 将输入通道补成8来处理.
+
   - $56 \times 56 \times 256$; 乘法; w4a12; 激活值整数位宽为4.
     ```sh
     python convert_act_structure.py
@@ -114,12 +136,52 @@
     --txt
     ```
 
+  - $208 \times 208 \times 16$; 移位; w3a8; 二进制上板
+    ```sh
+    python convert_act_structure.py \
+    --input img_208_16.bin \
+    --img_size 208 \
+    --img_channels 16 \
+    --quantize_x_integer 3 \
+    --quantize_x 8 \
+    --output img_208_16_process_shift.dat \
+    --bin
+    ```
+
+  - $208 \times 208 \times 16$; 移位; w3a8; 仿真
+    ```sh
+    python convert_act_structure.py \
+    --input img_208_16.bin \
+    --img_size 208 \
+    --img_channels 16 \
+    --quantize_x_integer 3 \
+    --quantize_x 8 \
+    --output img_208_16_process_shift_sim.txt \
+    --txt
+    ```
+
+  - $104 \times 104 \times 32$; 移位; w3a8; 二进制上板
+    ```sh
+    python convert_act_structure.py \
+    --input img_104_32.bin \
+    --img_size 104 \
+    --img_channels 32 \
+    --quantize_x_integer 3 \
+    --quantize_x 8 \
+    --output img_104_32_process_shift.dat \
+    --bin
+    ```
+
+
 ### 1.1.4 `convert_h52txt.py`
-`convert_h52txt.py` will create two output file, which separately contain weight data and bias data. Bias data will be stored in the same format as `test_postprocess.py`, which means bias data file need to be processed by script `convert_bias_bin2txt.py`.
 
   - 乘法和移位需要修改函数 `Store4DBinConvert` 中有关量化函数的部分.
 
   - PC 侧模拟移位和 FPGA 侧移位所用的权重数值不一样, FPGA 侧将输入映射到高8位, 并将PC中的左右移统一转化为右移, 所以在将数据转换为 FPGA 平台需要的数据时, 需要将 PC 侧的权重数据除8, 才能得到一致的计算结果.
+
+  - 对于输出通道小于 64 的情况, 将数据补为输出通道 64 来处理.
+
+  - 用于保存的量化函数已在 `Round2Fixed` 和 `RoundPower2` 的基础上添加 `Fix2Int` 的转整数函数.
 
   - 用于上板测试的数据, 以 16 位整数的格式保存为二进制文件, 相邻两个数颠倒以满足硬件内存排布的需求.
 
@@ -128,7 +190,7 @@
     python convert_h52txt.py \
     --img_w 56 \
     --img_ch 256 \
-    --quantize shift \
+    --quantize_w_method shift \
     --quantize_w 4 \
     --input_file weight_56_256.h5 \
     --output_file_weight weight_56_256_shift_process_16bit.dat \
@@ -140,7 +202,7 @@
     python convert_h52txt.py \
     --img_w 56 \
     --img_ch 256 \
-    --quantize mul \
+    --quantize_w_method mul \
     --quantize_w_integer 4 \
     --quantize_w 12 \
     --input_file weight_56_256.h5 \
@@ -153,27 +215,82 @@
     python convert_h52txt.py \
     --img_w 56 \
     --img_ch 256 \
-    --quantize shift \
+    --quantize_w_method shift \
     --quantize_w 4 \
     --input_file weight_56_256.h5 \
     --output_file_weight weight_56_256_shift_process_16bit_sim.txt \
     --txt
     ```
 
-  - YOLO 用于上板测试的数据, $3 \times 3 \times 16 \times 32$, 4 位移位, 以 16 位整数的格式保存为二进制文件. 由于默认权重转换的并行度是64, 大于这一层的输出通道数, 因此这一层的数据需要特殊处理. 设置`paral_w` 为 32. 得到的结果用 `assign4hw.py` 处理一次.
+  - YOLO 用于上板测试的数据, $3 \times 3 \times 16 \times 32$, 4 位移位, 以 16 位整数的格式保存为二进制文件. 由于默认权重转换的并行度是64, 大于这一层的输出通道数, 因此这一层的数据需要特殊处理. 设置`paral_w` 为 32. 得到的结果用 `weight_assign4hw.py` 处理一次.
     ```sh
     python convert_h52txt.py \
     --img_w 208 \
     --img_ch 16 \
     --paral_w 32 \
-    --quantize shift \
+    --quantize_w_method shift \
     --quantize_w_integer 4 \
     --quantize_w 4 \
+    --quantize_b_method mul \
     --quantize_b_integer 7 \
-    --quantize_w 16 \
+    --quantize_b 16 \
     --input_file weight_208_16.h5 \
-    --output_file_weight weight_208_16_shift_process_16bit.dat \
-    --output_file_bias bias_208_16_shift_process_16bit.dat \
+    --output_file_weight weight_208_16_shift_process.dat \
+    --output_file_bias bias_208_16_shift_process.dat \
+    --bin
+    ```
+
+  - YOLO 用于仿真的数据.
+    ```sh
+    python convert_h52txt.py \
+    --img_w 208 \
+    --img_ch 16 \
+    --paral_w 32 \
+    --quantize_w_method shift \
+    --quantize_w_integer 4 \
+    --quantize_w 4 \
+    --quantize_b_method mul \
+    --quantize_b_integer 7 \
+    --quantize_b 16 \
+    --input_file weight_208_16.h5 \
+    --output_file_weight weight_208_16_shift_process_sim.txt \
+    --output_file_bias bias_208_16_shift_process_sim.txt \
+    --txt
+    ```
+
+  - YOLO 用于上板测试的数据, $3 \times 3 \times 32 \times 64$, 4 位移位.
+    ```sh
+    python convert_h52txt.py \
+    --img_w 104 \
+    --img_ch 32 \
+    --paral_w 64 \
+    --quantize_w_method shift \
+    --quantize_w_integer 4 \
+    --quantize_w 4 \
+    --quantize_b_method mul \
+    --quantize_b_integer 7 \
+    --quantize_b 16 \
+    --input_file weight_104_32.h5 \
+    --output_file_weight weight_104_32_shift_process.dat \
+    --output_file_bias bias_104_32_shift_process.dat \
+    --bin
+    ```
+
+  - YOLO 用于上板测试的数据, 测试硬件适配后的不含上采样的完整一支 YOLO 的结果.
+    ```sh
+    python convert_h52txt.py \
+    --img_w 416 \
+    --img_ch 8 \
+    --paral_w 64 \
+    --quantize_w_method shift \
+    --quantize_w_integer 4 \
+    --quantize_w 4 \
+    --quantize_b_method mul \
+    --quantize_b_integer 7 \
+    --quantize_b 16 \
+    --input_file yolo_tiny_bench1.h5 \
+    --output_file_weight weight_yolo_tiny_bench1_shift_process.dat \
+    --output_file_bias bias_yolo_tiny_bench1_shift_process.dat \
     --bin
     ```
 
@@ -235,7 +352,72 @@
     --quantize_x 8
     ```
 
+  - $104 \times 104 \times 32$; 激活计算结果; 移位; a8; 激活值整数位宽为3.
+    ```sh
+    python convert_out_structure.py \
+    --directory yolo \
+    --paral_out 8 \
+    --input out_104_32.dat \
+    --output out_104_32_process.dat \
+    --img_size 104 \
+    --img_channels 64 \
+    --quantize_x_integer 3 \
+    --quantize_x 8
+    ```
 
+
+### 1.1.7 `calculate_config.py`
+
+SDK 配置寄存器说明
+
+| 地址 |   位宽   | 说明 |
+|:----:|:--------:|:----|
+|0x000 | [ 0:  0] | conf_33. Choose $3 \times 3$ convolution or $1 \times 1$ convolution.
+|      |          | 0 indicate $3 \times 3$ convolution.
+|      |          | 1 indicate $1 \times 1$ convolution.
+|      | [ 1:  1] | act source.
+|      |          | 0 indicate DDR source.
+|      |          | 1 indicate SDK source.
+|      | [ 2:  2] | weight or bias source
+|      |          | 0 indicate DDR source.
+|      |          | 1 indicate SDK source.
+|      | [ 3:  3] | ReLU mode.
+|      |          | 0 indicate ReLU.
+|      |          | 1 indicate LeakyReLU.
+|      | [ 4:  4] | ReLU switch
+|      |          | 0 indicate ReLU off.
+|      |          | 1 indicate ReLU on.
+|      | [ 5:  5] | bias switch
+|      |          | 0 indicate bias calculation off.
+|      |          | 1 indicate bias calculation on.
+|      | [ 6:  6] | sampling switch
+|      |          | 0 indicate sampling off.
+|      |          | 1 indicate sampling on.
+|      | [ 7:  7] | bitintercept switch. Useless for now.
+|      | [16:  8] | img_h, which is also img_w
+|      | [17: 17] | Output sink.
+|      |          | 0 indicate DDR is output sink.
+|      |          | 1 indicate SDK is output sink.
+|      | [18: 18] | Initial weight.
+|      |          | 0 indicate it is calculate state.
+|      |          | 1 indicate it is initial weight state.
+|      | [19: 19] | finish.
+|      |          | 0 indicate configuration state not finish.
+|      |          | 1 indicate configuration state finish.
+|      | [20: 20] | reset.
+|      |          | 1 indicate reset.
+|      |          | 0 indicate not to reset.
+|0x020 | [11:  0] | input channel
+|      | [23: 12] | output channel
+|0x040 |          | Act write address. Only useful when act source is SDK.
+|0x060 |          | Act read address.
+|0x080 |          | Weight write address. Only useful when act source is SDK.
+|0x0a0 |          | Weight read address.
+|0x0c0 |          | Weight write length. Count in element.
+|0x0e0 |          | Bias write address.
+|0x100 |          | Bias read address.
+|0x120 |          | Bias write length. Count in element.
+|0x140 |          | DDR write address.
 ## 1.2 常用数字
 
 $56 \times 56 \times 256 = 0x8318\_8000$
@@ -460,6 +642,35 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
 Total weight number:
 $8845744=432+4608+18432+73728+294912+1179648+4718592+262400+1179648+130560+32768+884736+65280$
+
+
+## 4.4 YOLO Tiny for Hardware
+
+| Layer   | Input Layer                                                | Output Layer                       | Operation                                        | ram cost           |
+| ------- | ---------------------------------------------------------- | ---------------------------------- | ------------------------------------------------ | ------------------ |
+| 1       | $8 \times 416 \times 416, 1384448$                         | $64 \times 416 \times 416,11075584$ | $conv:8 \times 64 \times 3 \times 3,4608$         | 11075584, **4608**    |
+| 2       | $64 \times 416 \times 416,11075584$                         | $64 \times 208 \times 208,2768896$  | $mp:2,step:2$                                    |                    |
+| 3       | $64 \times 208 \times 208,2768896$                          | $64 \times 208 \times 208,2768896$ | $conv:64 \times 64 \times 3 \times 3,36864$       | 692224, **36864**   |
+| 4       | $64 \times 208 \times 208,2768896$                         | $64 \times 104 \times 104,692224$  | $mp:2,step:2$                                    |                    |
+| 5       | $64 \times 104 \times 104,692224$                          | $64 \times 104 \times 104,692224$  | $conv:64 \times 64 \times 3 \times 3,18432$      | 692224, **36864** |
+| 6       | $64 \times 104 \times 104,692224$                          | $64 \times 52 \times 52,173056$    | $mp:2,step:2$                                    |                    |
+| 7       | $64 \times 52 \times 52,173056$                            | $128 \times 52 \times 52,346112$   | $conv:64 \times 128 \times 3 \times 3,73728$     | 173056, **73728**  |
+| 8       | $128 \times 52 \times 52,346112$                           | $128 \times 26 \times 26,86528$    | $mp:2,step:2$                                    |                    |
+| 9       | $128 \times 26 \times 26,86528$                            | $256 \times 26 \times 26,173056$   | $conv:128 \times 256 \times 3 \times 3,294912$   | **86528**, 294912  |
+| bench 1 |                                                            |                                    |                                                  |                    |
+| 10      | $256 \times 26 \times 26,173056$                           | $256 \times 13 \times 13,43264$    | $mp:2,step:2$                                    |                    |
+| 11      | $256 \times 13 \times 13,43264$                            | $512 \times 13 \times 13,86528$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **43264**, 1179648 |
+| 12      | $512 \times 13 \times 13,86528$                            | $512 \times 13 \times 13,86528$    | $mp:2,step:1$                                    |                    |
+| 13      | $512 \times 13 \times 13,86528$                            | $1024 \times 13 \times 13,173056$  | $conv:512 \times 1024 \times 3 \times 3,4718592$ | **86528**, 4718592 |
+| 14      | $1024 \times 13 \times 13,173056$                          | $256 \times 13 \times 13,43264$    | $conv:1024 \times 256 \times 1 \times 1,262400$  | **173056**, 262400 |
+| 15      | $256 \times 13 \times 13,43264$                            | $512 \times 13 \times 13,86528$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **43264**, 1179648 |
+| 16      | $512 \times 13 \times 13,86528$                            | $255 \times 13 \times 13,43095$    | $conv:512 \times 255 \times 1 \times 1,130560$   | **86528**, 130560  |
+| bench 2 |                                                            |                                    |                                                  |                    |
+| 15      | $256 \times 13 \times 13,43264$                            | $128 \times 13 \times 13,21632$    | $conv:256 \times 128 \times 1 \times 1,32768$    | 43264, **32768**   |
+| 16      | $128 \times 13 \times 13,21632$                            | $128 \times 26 \times 26,86528$    | $upsample$                                       |                    |
+| 17      | $128 \times 26 \times 26 + 256 \times 26 \times 26,259584$ | $384 \times 26 \times 26,259584$   | $concat$                                         |                    |
+| 18      | $384 \times 26 \times 26,259584$                           | $256 \times 26 \times 26,173056$   | $conv:384 \times 256 \times 3 \times 3,884736$   | **259584**, 884736 |
+| 19      | $256 \times 26 \times 26,173056$                           | $255 \times 26 \times 26,172380$   | $conv:256 \times 255 \times 1 \times 1,65280$    | 173056, **65280**  |
 
 Number of data:
 

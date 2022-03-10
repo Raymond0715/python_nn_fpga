@@ -1,71 +1,32 @@
 import csv
 from pathlib import Path
 import numpy as np
+import pdb
 
 # Parameter
 layer_num = 1
 conf_path = Path('.') / 'config' / 'yolo.csv'
 
-# Config
-
-# For one layer
-conf_33                  = 0
-conf_act_src             = 1
-conf_weight_src          = 1
-conf_relu_mode           = 1
-conf_relu_switch         = 1
-conf_bias_switch         = 1
-conf_sampling_switch     = 0
-conf_bitintercept_switch = 1
-conf_img_h               = 56
-conf_finish              = 1
-conf_reset               = 0
-conf_output_sink         = 1
-
-
-# For two layer
-# First layer of two layer
-# conf_33                  = 0
-# conf_act_src             = 1
-# conf_weight_src          = 1
-# conf_relu_mode           = 1
-# conf_relu_switch         = 1
-# conf_bias_switch         = 1
-# conf_sampling_switch     = 0
-# conf_bitintercept_switch = 1
-# conf_img_h               = 56
-# conf_finish              = 0
-# conf_reset               = 0
-# conf_output_sink         = 0
-
-# Second layer of two layer
-# conf_33                  = 0
-# conf_act_src             = 0
-# conf_weight_src          = 0
-# conf_relu_mode           = 1
-# conf_relu_switch         = 1
-# conf_bias_switch         = 1
-# conf_sampling_switch     = 0
-# conf_bitintercept_switch = 1
-# conf_img_h               = 56
-# conf_finish              = 1
-# conf_reset               = 0
-# conf_output_sink         = 1
-# conf_output_sink         = 0
-
-# with open(conf_path, newline='') as csvfile:
-  # reader = csv.DictReader(csvfile, delimiter=',')
-  # for row in reader:
-    # print(type(row['conf_33']))
-
 config_value = np.ndarray((11, layer_num))
 
-for i in range(layer_num):
-  config_value[0, i] = \
-      conf_33 + 2 * conf_act_src + 2**2 * conf_weight_src \
-      + 2**3 * conf_relu_mode + 2**4 * conf_relu_switch \
-      + 2**5 * conf_bias_switch + 2**6 * conf_sampling_switch \
-      + 2**7 * conf_bitintercept_switch + 2**8 * conf_img_h \
-      + 2**17 * conf_finish + 2**18 * conf_reset + 2**19 * conf_output_sink
-  print('[INFO][calculate_config.py] config_value', i, ":",
-      hex(int(config_value[0, i])))
+with open(conf_path, newline='') as csvfile:
+  reader = csv.DictReader(csvfile, delimiter=',')
+  for row in reader:
+    config_value = \
+        int(row['conf_33']) \
+        + int(row['conf_act_src'])             * 2 \
+        + int(row['conf_weight_src'])          * 2**2 \
+        + int(row['conf_relu_mode'])           * 2**3 \
+        + int(row['conf_relu_switch'])         * 2**4 \
+        + int(row['conf_bias_switch'])         * 2**5 \
+        + int(row['conf_sampling_switch'])     * 2**6 \
+        + int(row['conf_bitintercept_switch']) * 2**7 \
+        + int(row['conf_img_h'])               * 2**8 \
+        + int(row['conf_output_sink'])         * 2**17 \
+        + int(row['conf_init_weight'])         * 2**18 \
+        + int(row['conf_finish'])              * 2**19 \
+        + int(row['conf_reset'])               * 2**20 \
+    # print(type(row['conf_33']))
+    print(
+        '[INFO][calculate_config.py] config_value {:>11} : 0x{:0>8x}'
+        .format(row['name'], config_value))

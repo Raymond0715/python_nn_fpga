@@ -22,7 +22,7 @@ if __name__ == '__main__':
       help = 'Parallelism degree of weight. No need to change in most case.')
 
   parser.add_argument(
-      '--quantize', default = 'mul',
+      '--quantize_w_method', default = 'mul',
       help = 'Choose quantization mode. '
       '`shfit` for shift and `mul` for multiply')
   parser.add_argument(
@@ -31,6 +31,10 @@ if __name__ == '__main__':
   parser.add_argument(
       '--quantize_w', default = 12, type = int,
       help = 'Specify data width of weight.')
+  parser.add_argument(
+      '--quantize_b_method', default = 'mul',
+      help = 'Choose quantization mode. '
+      '`shfit` for shift and `mul` for multiply')
   parser.add_argument(
       '--quantize_b_integer', default = 8, type = int,
       help = 'Specify integer data width of input tensor.')
@@ -69,8 +73,8 @@ if __name__ == '__main__':
 
   input_tensor_shape = (None, args.img_w, args.img_w, args.img_ch)
   # Don't change. Quantization will be executed in store function.
-  model = OneConvNet('shift', 4, 32, 4, 32)
-  # model = GenerateModel('shift', 4, 4, 3, 8)
+  # model = OneConvNet('shift', 4, 32, 4, 32)
+  model = GenerateModel('shift', 4, 4, 3, 8)
   model.build(input_tensor_shape)
   model.load_weights(str(ckpt_path))
 
@@ -82,13 +86,14 @@ if __name__ == '__main__':
     file_mode = 'w'
 
   QuantizeFuncWeight = utils.GenerateRoundFn(
-      args.quantize_w_integer, args.quantize_w, args.quantize)
+      args.quantize_w_integer, args.quantize_w, args.quantize_w_method)
 
   QuantizeFuncBias = utils.GenerateRoundFn(
-      args.quantize_b_integer, args.quantize_b, args.quantize)
+      args.quantize_b_integer, args.quantize_b, args.quantize_b_method)
 
   '''
   Tensor process table
+
                 on-board (bin)               simulation (txt)
   weight        Swap adjacent elements       tfReshape
                 QuantizeFuncWeight           QuantizeFuncWeight
@@ -131,15 +136,16 @@ if __name__ == '__main__':
         weight_quantize = QuantizeFuncWeight(weight_reshape)
         it = np.nditer(
             weight_quantize.numpy().astype(np.int16), flags=['multi_index'])
-        utils.StoreFormatTxt(it, fw)
+        utils.StoreFormatTxt(it, '{:0>4x}', 0x10000, 8, fw)
 
       elif not args.bin and 'bias' in weight.name:
         print('[INFO][convert_h52txt.py] '
             'Store bias {} as text.'.format(weight.name))
-        weight_quantize = QuantizeFuncBias(weight_1d)
+        weight_reshape = tfReshape(weight_1d, [-1, 4])
+        weight_quantize = QuantizeFuncBias(weight_reshape)
         it = np.nditer(
             weight_quantize.numpy().astype(np.int32), flags=['multi_index'])
-        utils.StoreFormatTxt(it, fb)
+        utils.StoreFormatTxt(it, '{:0>8x}', 0x100000000, 4, fb)
 
       else:
         print('[ERROR][convert_h52txt.py] '

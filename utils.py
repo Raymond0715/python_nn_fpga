@@ -132,17 +132,17 @@ def Store2DTensor(tensor, output_path, integer, width):
     for npiter in np.nditer(tensor_quantize.numpy().astype(np.float32)):
       f.write(npiter)
 
-def StoreFormatTxt(it, f):
+def StoreFormatTxt(it, str_format, complement, paral, f):
   for npiter in it:
     if it.multi_index[1] == 0:
       data_str = ''
 
     if npiter >= 0:
-      pixel_str = '{:0>4x}'.format(npiter)
+      pixel_str = str_format.format(npiter)
     else:
-      pixel_str = '{:0>4x}'.format(0x10000+npiter)
+      pixel_str = str_format.format(complement+npiter)
 
     data_str = data_str + pixel_str
 
-    if it.multi_index[1] == 7 or it.finished:
+    if it.multi_index[1] == paral-1 or it.finished:
       f.write(data_str + '\n')

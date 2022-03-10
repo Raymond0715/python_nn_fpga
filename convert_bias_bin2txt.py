@@ -3,6 +3,8 @@ from pathlib import Path
 
 import numpy as np
 
+import utils
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
       description =
@@ -11,19 +13,16 @@ if __name__ == '__main__':
       binary file is used for on board test.
       ''')
   parser.add_argument(
-      '--num_data', default = 256, type = int,
-      help = 'Number of data.')
-  parser.add_argument(
       '--package_size', default = 4, type = int,
       help = 'Input degree of parallelism. No need to change in most case.')
   parser.add_argument(
-      '--directory', default = 'post_process_bias_mul',
+      '--directory', default = 'yolo',
       help = 'Output directory.')
   parser.add_argument(
-      '--input_file', default = 'bias_56_256.bin',
+      '--input_file', default = 'bias_208_16_shift_process.dat',
       help = 'Input file name.')
   parser.add_argument(
-      '--output_file', default = 'bias_56_256_sim.bin',
+      '--output_file', default = 'bias_208_16_shift_process_sim.txt',
       help = 'Output file name.')
   args = parser.parse_args()
 
@@ -35,13 +34,6 @@ if __name__ == '__main__':
   bias_int = np.fromfile(input_path, dtype=np.int32)
 
   with open(str(output_path), mode = 'w') as f:
-    for j in range(int(args.num_data/args.package_size)):
-      for i in range(args.package_size):
-        pixel = bias_int[j*args.package_size+i]
-        if pixel >= 0:
-          pixel_str = '{:0>8x}'.format(pixel)
-        else:
-          pixel_str = '{:0>8x}'.format(0x10000+pixel)
-        f.write(pixel_str)
-
-      f.write('\n')
+    it = np.nditer(
+        np.reshape(bias_int, (-1, args.package_size)), flags=['multi_index'])
+    utils.StoreFormatTxt(it, '{:0>8x}', 0x100000000, args.package_size, f)
