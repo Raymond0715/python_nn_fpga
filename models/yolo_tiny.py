@@ -153,38 +153,36 @@ class YoloTiny(Model):
   def call(self, input_tensor):
     x = input_tensor
 
-    x = self.conv1(x)
-    x = tfReLu(x, alpha=0.015625)
-    # x = MaxPooling2D(pool_size = 2, strides = 2)(x)
-
-    x = self.conv3(x)
-    x = tfReLu(x, alpha=0.015625)
-    # x = MaxPooling2D(pool_size = 2, strides = 2)(x)
-
-    x = self.conv5(x)
-    x = tfReLu(x, alpha=0.015625)
-    # x = MaxPooling2D(pool_size = 2, strides = 2)(x)
-
-    x = self.conv7(x)
-    x = tfReLu(x, alpha=0.015625)
-    # x = MaxPooling2D(pool_size = 2, strides = 2)(x)
-
-    x = self.conv9(x)
+    x  = self.conv1(x)
     x1 = tfReLu(x, alpha=0.015625)
-    # x = MaxPooling2D(pool_size = 2, strides = 2)(x)
 
-    x = self.conv11(x)
-    x = tfReLu(x, alpha=0.015625)
+    x  = self.conv3(x1)
+    x2 = tfReLu(x, alpha=0.015625)
 
-    x = self.conv13(x)
-    x = tfReLu(x, alpha=0.015625)
-    x = self.conv14(x)
-    x = tfReLu(x, alpha=0.015625)
-    x = self.conv15(x)
-    x = tfReLu(x, alpha=0.015625)
-    x = self.conv16(x)
+    x  = self.conv5(x2)
+    x3 = tfReLu(x, alpha=0.015625)
 
-    return x
+    x  = self.conv7(x3)
+    x4 = tfReLu(x, alpha=0.015625)
+
+    x  = self.conv9(x4)
+    x5 = tfReLu(x, alpha=0.015625)
+
+    x  = self.conv11(x5)
+    x6 = tfReLu(x, alpha=0.015625)
+
+    x  = self.conv13(x6)
+    x7 = tfReLu(x, alpha=0.015625)
+
+    x  = self.conv14(x7)
+    x8 = tfReLu(x, alpha=0.015625)
+
+    x  = self.conv15(x8)
+    x9 = tfReLu(x, alpha=0.015625)
+
+    x10 = self.conv16(x9)
+
+    return x6
 
 def GenerateModel(
     quantize, quantize_w_int, quantize_w, quantize_x_int, quantize_x):

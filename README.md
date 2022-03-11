@@ -1,6 +1,3 @@
-
-
-
 **重要声明: 该测试数据生成工程是我在进行 FPGA 开发时自用的, 并不是用户友善的工程. 部分脚本之间功能重复或者有 参数/定义 依赖等情况. 欢迎并鼓励在实际使用时, 根据用户习惯与喜好自行修改.**
 
 量化函数整数部分改为命令行参数.
@@ -172,6 +169,18 @@
     --quantize_x_integer 3 \
     --quantize_x 8 \
     --output img_104_32_process_shift.dat \
+    --bin
+    ```
+
+  - $416 \times 416 \times 8$; 移位; w3a8; 仿真
+    ```sh
+    python convert_act_structure.py \
+    --input img_416_8.bin \
+    --img_size 416 \
+    --img_channels 8 \
+    --quantize_x_integer 3 \
+    --quantize_x 8 \
+    --output img_416_8_process_shift.dat \
     --bin
     ```
 
@@ -368,6 +377,19 @@
     --quantize_x 8
     ```
 
+  - YOLO test one bench; 激活计算结果; 移位; a8; 激活值整数位宽为3.
+    ```sh
+    python convert_out_structure.py \
+    --directory yolo \
+    --paral_out 8 \
+    --input out_yolo_bench1.dat \
+    --output out_yolo_bench1_process.dat \
+    --img_size 13 \
+    --img_channels 256 \
+    --quantize_x_integer 3 \
+    --quantize_x 8
+    ```
+
 
 ### 1.1.7 `calculate_config.py`
 
@@ -421,6 +443,24 @@ SDK 配置寄存器说明
 |0x100 |          | Bias read address.
 |0x120 |          | Bias write length. Count in element.
 |0x140 |          | DDR write address.
+
+YOLO 寄存器 0 配置信息
+```sh
+[INFO][calculate_config.py] config_value init_weight : 0x000c000e
+[INFO][calculate_config.py] config_value       reset : 0x00100000
+[INFO][calculate_config.py] config_value     layer_1 : 0x0001a07a
+[INFO][calculate_config.py] config_value     layer_3 : 0x0000d078
+[INFO][calculate_config.py] config_value     layer_5 : 0x00006878
+[INFO][calculate_config.py] config_value     layer_7 : 0x00003478
+[INFO][calculate_config.py] config_value     layer_9 : 0x00001a78
+[INFO][calculate_config.py] config_value    layer_11 : 0x00000d38
+[INFO][calculate_config.py] config_value    layer_13 : 0x00000d38
+[INFO][calculate_config.py] config_value    layer_14 : 0x00000d39
+[INFO][calculate_config.py] config_value    layer_15 : 0x00000d38
+[INFO][calculate_config.py] config_value    layer_16 : 0x00080d29
+```
+
+
 ## 1.2 常用数字
 
 $56 \times 56 \times 256 = 0x8318\_8000$
@@ -428,7 +468,9 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
 # 2 数据说明
 
-各种数据排布的说明.
+## 2.1 数据排布
+
+数据排布有以下三类
 
   - 按照 $(batch, channels, rows, columns)$ 排布的文件有:
 
@@ -440,23 +482,32 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
   - 按照硬件8通道并行顺序排布, 具体内容敬请期待
 
-## 移位原理简介
-### 移位量化计算过程  
-> 1.量化函数定义  
->+ 量化函数 $Q_f(x,i,k)$ 把浮点数x转换为整数部分位为i位,位宽为k位的定点数  
->+ 量化函数 $Q_p(x)=-4\times(Sign(x)-1)+( \log_2(|x|))_2$  
->>注：$-4(Sign(x)-1)$是为了把x的符号位加到这个四位的二进制数中，若是正值则不加，若是负数则最前面一位+1  
 
-> 2.前处理过程  
->+ 传统前处理：$Activation=weight$$*$$input+bias$    
->+ 移位前处理：$Activation=Q_f(input,3,5)$ $*$ $Q_p(weight)+Q_f(bias,7,16)$  
+## 2.2 移位原理简介
 
-> 3.移位映射  
+### 2.3.1 量化函数
+
+  - 量化函数 $Q_f(x,i,k)$ 把浮点数x转换为整数部分位为i位,位宽为k位的定点数
+
+  - 量化函数 $Q_p(x)=-4\times(Sign(x)-1)+( \log_2(|x|))_2$
+
+>注：$-4(Sign(x)-1)$是为了把x的符号位加到这个四位的二进制数中，若是正值则不加，若是负数则最前面一位+1
+
+### 2.3.2 前处理过程
+
+  - 传统前处理：$Activation=weight$$*$$input+bias$
+
+  - 移位前处理：$Activation=Q_f(input,3,5)$ $*$ $Q_p(weight)+Q_f(bias,7,16)$
+
+### 2.3.3 移位映射
+
   - 移位映射: shift code: `lx` 左移 x 位, `rx` 右移 x 位. 最高位符号位, 0 为正, 1为负.
+
   - 当weight为正值时，16位数的符号位继承自4位数符号位，为0，其余三位为移动的位数
     |移位操作| `l3`| `l2`| `l1`|  `0`| `r1`| `r2`| `r3`| `r4`|
     |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
     |w二进制数值|0000|0001|0010|0011|0100|0101|0110|0111|
+
   - 当weight为负值时，16位数的符号位继承自4位数符号位，为1，其余三位为移动的位数
     |移位操作| `l3`| `l2`| `l1`|  `0`| `r1`| `r2`| `r3`| `r4`|
     |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -684,7 +735,7 @@ $8845744=432+4608+18432+73728+294912+1179648+4718592+262400+1179648+130560+32768
 | 13      | $512 \times 13 \times 13,86528$                            | $1024 \times 13 \times 13,173056$  | $conv:512 \times 1024 \times 3 \times 3,4718592$ | **86528**, 4718592 |
 | 14      | $1024 \times 13 \times 13,173056$                          | $256 \times 13 \times 13,43264$    | $conv:1024 \times 256 \times 1 \times 1,262400$  | **173056**, 262400 |
 | 15      | $256 \times 13 \times 13,43264$                            | $512 \times 13 \times 13,86528$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **43264**, 1179648 |
-| 16      | $512 \times 13 \times 13,86528$                            | $255 \times 13 \times 13,43095$    | $conv:512 \times 255 \times 1 \times 1,130560$   | **86528**, 130560  |
+| 16      | $512 \times 13 \times 13,86528$                            | $256 \times 13 \times 13,43264$    | $conv:512 \times 256 \times 1 \times 1,131072$   | **86528**, 131072  |
 | bench 2 |                                                            |                                    |                                                  |                    |
 | 15      | $256 \times 13 \times 13,43264$                            | $128 \times 13 \times 13,21632$    | $conv:256 \times 128 \times 1 \times 1,32768$    | 43264, **32768**   |
 | 16      | $128 \times 13 \times 13,21632$                            | $128 \times 26 \times 26,86528$    | $upsample$                                       |                    |
@@ -692,29 +743,4 @@ $8845744=432+4608+18432+73728+294912+1179648+4718592+262400+1179648+130560+32768
 | 18      | $384 \times 26 \times 26,259584$                           | $256 \times 26 \times 26,173056$   | $conv:384 \times 256 \times 3 \times 3,884736$   | **259584**, 884736 |
 | 19      | $256 \times 26 \times 26,173056$                           | $255 \times 26 \times 26,172380$   | $conv:256 \times 255 \times 1 \times 1,65280$    | 173056, **65280**  |
 
-Number of data:
 
-| time    | DDR                                                                                                                           |
-| ----    | ------------------------------------------------------------------------------------------------------------------------------|
-| 1       | 0 ~ 519167 (in),       692224 ~ 3461119 (out)                                                                                 |
-| 2       | 0 ~ 692223 (out),      692224 ~ 3461119 (in)                                                                                  |
-| 3       | 0 ~ 692223 (in),       692224 ~ 2076671 (out)                                                                                 |
-| 4       | 0 ~ 346111 (out),      692224 ~ 2076671 (in)                                                                                  |
-| 5       | 0 ~ 346111 (in),       692224 ~ 1384447 (out)                                                                                 |
-| 6       | 0 ~ 173055 (out),      692224 ~ 1384447 (in)                                                                                  |
-| 7       | 0 ~ 173055 (in),       692224 ~ 1038335 (out)                                                                                 |
-| 8       | 0 ~ 86527  (out),      692224 ~ 1038335 (in)                                                                                  |
-| 9       | 0 ~ 86527  (in),       692224 ~ 865279  (out)                                                                                 |
-| bench 1 |                                                                                                                               |
-| 10      | 0 ~ 43263  (out),      692224 ~ 865279  (in)                                                                                  |
-| 11      | 0 ~ 43263  (in),       173056 ~ 259583  (out), 692224 ~ 865279 (preserve)                                                     |
-| 12      | 0 ~ 86527  (out),      173056 ~ 259583  (in),  692224 ~ 865279 (preserve)                                                     |
-| 13      | 0 ~ 86527  (in),       173056 ~ 346111  (out), 692224 ~ 865279 (preserve)                                                     |
-| 14      | 0 ~ 43263  (out),      173056 ~ 346111  (in),  692224 ~ 865279 (preserve)                                                     |
-| 15      | 0 ~ 43263  (in),       173056 ~ 259583  (out), 692224 ~ 865279 (preserve)                                                     |
-| 16      | 0 ~ 43263  (preserve), 173056 ~ 259583  (in),  692224 ~ 865279 (preserve), 3461120 ~ 3504214 (fout)                           |
-| bench 2 |                                                                                                                               |
-| 17      | 0 ~ 43263  (in),       43264 ~ 64895    (out), 692224 ~ 865279 (preserve), 3461120 ~ 3504214 (fout)                           |
-| 18      | 43264 ~ 64895 (in),    605696 ~ 692223  (out), 692224 ~ 865279 (preserve), 3461120 ~ 3504214 (fout)                           |
-| 19      | 0 ~ 173055 (out),      605696 ~ 865279  (in),                              3461120 ~ 3504214 (fout)                           |
-| 20      | 0 ~ 173055 (in),                                                           3461120 ~ 3504214 (fout), 3504215 ~ 3676594 (fout) |
