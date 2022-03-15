@@ -1,3 +1,4 @@
+# SOFTWARE
 **重要声明: 该测试数据生成工程是我在进行 FPGA 开发时自用的, 并不是用户友善的工程. 部分脚本之间功能重复或者有 参数/定义 依赖等情况. 欢迎并鼓励在实际使用时, 根据用户习惯与喜好自行修改.**
 
 量化函数整数部分改为命令行参数.
@@ -7,6 +8,18 @@
 ## 1.1 常用命令
 
 记录常见用于生成测试数据的命令以及相关代码的修改.
+
+转换流程:
+
+1. 运行 `create_img.py` 创建输入
+
+2. 运行 `inference.py` 或 `test_postprocess.py` 得到计算结果, **注意**, 如果是计算新的数据, 要创建新的, 随机初始化的权重数据并保存, 之后运行时加载保存的权重数据
+
+3. 运行 `convert_act_structure.py` 创建 DDR layout 的激活值数据. 注意, 目前需要手动修改 `quantization.py` 中的量化函数.
+
+4. 运行 `convert_h52txt.py` 创建 DDR layout 的权重数据. 注意, 目前需要手动修改 `quantization.py` 中的量化函数.
+
+5. 运行 `convert_out_structure.py` 创建 DDR layout 的计算结果.
 
 ### 1.1.1 `inference.py`
 
@@ -83,6 +96,29 @@
     --output_conv out_56_256_conv.dat \
     --output_bias out_56_256_bias.dat \
     --output_relu out_56_256_leakyrelu.dat
+    ```
+
+  - $28 \times 28 \times 512$; 移位; w4a8; 输入整数位宽为3; 下述设置中, `quantize_w_integer` 不生效, 输入值为16位, 整数位宽为7.
+    ```sh
+    python test_postprocess.py \
+    --img_dat img_28_512.dat \
+    --img_size 28 \
+    --img_channels 512 \
+    --ckpt weight_28_512.h5 \
+    --ckpt_filter_num 512 \
+    --ckpt_bias bias_28_512.dat \
+    --ckpt_directory post_process_bias_shift \
+    --quantize shift \
+    --quantize_w_integer 4 \
+    --quantize_w 4 \
+    --quantize_x_integer 3 \
+    --quantize_x 8 \
+    --quantize_o_integer 7 \
+    --quantize_o 16 \
+    --output_directory post_process_shift \
+    --output_conv out_28_512_conv.dat \
+    --output_bias out_28_512_bias.dat \
+    --output_relu out_28_512_leakyrelu.dat
     ```
 
   - $56 \times 56 \times 256$; 移位; w4a8; 激活值整数位宽为3; 下述设置中, `quantize_w_integer` 不生效; 第二层; 输入值为16位, 整数位宽为7.
@@ -182,6 +218,18 @@
     --quantize_x 8 \
     --output img_416_8_process_shift.dat \
     --bin
+    ```
+
+  - $13 \times 13 \times 256$; 移位; w3a8; 仿真
+    ```sh
+    python convert_act_structure.py \
+    --input input_yolo_bench1_l11.dat \
+    --img_size 13 \
+    --img_channels 256 \
+    --quantize_x_integer 3 \
+    --quantize_x 8 \
+    --output img_input_yolo_bench1_sim.txt \
+    --txt
     ```
 
 
@@ -729,18 +777,15 @@ $8845744=432+4608+18432+73728+294912+1179648+4718592+262400+1179648+130560+32768
 | 8       | $128 \times 52 \times 52,346112$                           | $128 \times 26 \times 26,86528$    | $mp:2,step:2$                                    |                    |
 | 9       | $128 \times 26 \times 26,86528$                            | $256 \times 26 \times 26,173056$   | $conv:128 \times 256 \times 3 \times 3,294912$   | **86528**, 294912  |
 | bench 1 |                                                            |                                    |                                                  |                    |
-| 10      | $256 \times 26 \times 26,173056$                           | $256 \times 13 \times 13,43264$    | $mp:2,step:2$                                    |                    |
-| 11      | $256 \times 13 \times 13,43264$                            | $512 \times 13 \times 13,86528$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **43264**, 1179648 |
-| 12      | $512 \times 13 \times 13,86528$                            | $512 \times 13 \times 13,86528$    | $mp:2,step:1$                                    |                    |
-| 13      | $512 \times 13 \times 13,86528$                            | $1024 \times 13 \times 13,173056$  | $conv:512 \times 1024 \times 3 \times 3,4718592$ | **86528**, 4718592 |
-| 14      | $1024 \times 13 \times 13,173056$                          | $256 \times 13 \times 13,43264$    | $conv:1024 \times 256 \times 1 \times 1,262400$  | **173056**, 262400 |
-| 15      | $256 \times 13 \times 13,43264$                            | $512 \times 13 \times 13,86528$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **43264**, 1179648 |
-| 16      | $512 \times 13 \times 13,86528$                            | $256 \times 13 \times 13,43264$    | $conv:512 \times 256 \times 1 \times 1,131072$   | **86528**, 131072  |
+| 10      | $256 \times 26 \times 26,173056$                            | $512 \times 26 \times 26,346112$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **173056**, 1179648 |
+| 11      | $512 \times 26 \times 26,346112$                           | $512 \times 13 \times 13,86528$    | $mp:2,step:2$                                    |                    |
+| 12      | $512 \times 13 \times 13,86528$                            | $1024 \times 13 \times 13,173056$  | $conv:512 \times 1024 \times 3 \times 3,4718592$ | **86528**, 4718592 |
+| 13      | $1024 \times 13 \times 13,173056$                          | $256 \times 13 \times 13,43264$    | $conv:1024 \times 256 \times 1 \times 1,262400$  | **173056**, 262400 |
+| 14      | $256 \times 13 \times 13,43264$                            | $512 \times 13 \times 13,86528$    | $conv:256 \times 512 \times 3 \times 3,1179648$  | **43264**, 1179648 |
+| 15      | $512 \times 13 \times 13,86528$                            | $256 \times 13 \times 13,43264$    | $conv:512 \times 256 \times 1 \times 1,131072$   | **86528**, 131072  |
 | bench 2 |                                                            |                                    |                                                  |                    |
-| 15      | $256 \times 13 \times 13,43264$                            | $128 \times 13 \times 13,21632$    | $conv:256 \times 128 \times 1 \times 1,32768$    | 43264, **32768**   |
-| 16      | $128 \times 13 \times 13,21632$                            | $128 \times 26 \times 26,86528$    | $upsample$                                       |                    |
-| 17      | $128 \times 26 \times 26 + 256 \times 26 \times 26,259584$ | $384 \times 26 \times 26,259584$   | $concat$                                         |                    |
-| 18      | $384 \times 26 \times 26,259584$                           | $256 \times 26 \times 26,173056$   | $conv:384 \times 256 \times 3 \times 3,884736$   | **259584**, 884736 |
-| 19      | $256 \times 26 \times 26,173056$                           | $255 \times 26 \times 26,172380$   | $conv:256 \times 255 \times 1 \times 1,65280$    | 173056, **65280**  |
-
-
+| 14      | $256 \times 13 \times 13,43264$                            | $128 \times 13 \times 13,21632$    | $conv:256 \times 128 \times 1 \times 1,32768$    | 43264, **32768**   |
+| 15      | $128 \times 13 \times 13,21632$                            | $128 \times 26 \times 26,86528$    | $upsample$                                       |                    |
+| 16      | $128 \times 26 \times 26 + 256 \times 26 \times 26,259584$ | $384 \times 26 \times 26,259584$   | $concat$                                         |                    |
+| 17      | $384 \times 26 \times 26,259584$                           | $256 \times 26 \times 26,173056$   | $conv:384 \times 256 \times 3 \times 3,884736$   | **259584**, 884736 |
+| 18      | $256 \times 26 \times 26,173056$                           | $255 \times 26 \times 26,172380$   | $conv:256 \times 255 \times 1 \times 1,65280$    | 173056, **65280**  |
