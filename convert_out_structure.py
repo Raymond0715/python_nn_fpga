@@ -38,6 +38,13 @@ if __name__ == '__main__':
   parser.add_argument(
       '--quantize_x', default = 12, type = int,
       help = 'Specify data width of input tensor.')
+  parser.add_argument(
+      '--bin', dest='bin', action='store_true',
+      help = 'Output binary for on-board test.')
+  parser.add_argument(
+      '--txt', dest='bin', action='store_false',
+      help = 'Output text for simulation.')
+  parser.set_defaults(bin=True)
   args = parser.parse_args()
 
   # Parameter
@@ -50,17 +57,56 @@ if __name__ == '__main__':
   img_tf = tfConverttoTensor(img_raw, dtype=tfFloat32)
   img_reshape = tfReshape(
       img_tf, [1, args.img_channels, args.img_size, args.img_size])
+
+  '''
+  Generate simulation data for reorder module. Weight tiling is 2 and output
+  parallelism degree is 64.
+  '''
+  if not args.bin:
+    img_reshape = tfReshape(
+        img_tf, [2, -1, args.img_size, args.img_size])
+
   img_transpose = tfTranspose(img_reshape, perm = [2, 3, 0, 1])
 
-  # (row, col, 1, ch/paral, paral) -> (1, row, ch/paral, col, paral)
+  # bin: (row, col, 1, ch/paral, paral) -> (1, row, ch/paral, col, paral)
+  # txt: (row, col, 2, ch/paral/2, paral) -> (2, row, ch/paral/2, col, paral)
   data_1d = utils.ConvertTensor(img_transpose, [2, 0, 3, 1, 4], args.paral_out)
 
   QuantizeFunc = utils.GenerateRoundFn(
       args.quantize_x_integer, args.quantize_x, 'mul')
 
-  with open(dat_path, 'wb') as f:
-    print('[INFO][convert_out_structure.py] '
-        'Store activation as binary for on-board test.')
-    data_quantize = QuantizeFunc(data_1d)
-    for npiter in np.nditer(data_quantize.numpy().astype(np.int32)):
-      f.write(npiter)
+  if args.bin:
+    print('[INFO][convert_out_structure.py] Open file as binary.')
+    file_mode = 'wb'
+  else:
+    print('[INFO][convert_out_structure.py] Open file as text.')
+    file_mode = 'w'
+
+  with open(dat_path, file_mode) as f:
+    if args.bin:
+      print('[INFO][convert_out_structure.py] '
+          'Store output as binary for on-board test.')
+      data_quantize = QuantizeFunc(data_1d)
+      for npiter in np.nditer(data_quantize.numpy().astype(np.int32)):
+        f.write(npiter)
+
+    else:
+      print('[INFO][convert_out_structure.py] '
+          'Store output as txt for simluation.')
+      data_reshape = tfReshape(data_1d, [-1, args.paral_out])
+      data_quantize = QuantizeFunc(data_reshape)
+      it = np.nditer(
+          data_quantize.numpy().astype(np.int16), flags=['multi_index'])
+      for npiter in it:
+        if it.multi_index[1] == 0:
+          data_str = ''
+
+        if npiter >= 0:
+          pixel_str = '{:0>4x}'.format(npiter)
+        else:
+          pixel_str = '{:0>4x}'.format(0x10000+npiter)
+
+        data_str = data_str + pixel_str
+
+        if it.multi_index[1] == args.paral_out-1 or it.finished:
+          f.write(data_str + '\n')
