@@ -92,12 +92,18 @@ if __name__ == '__main__':
 
     else:
       print('[INFO][convert_out_structure.py] '
-          'Store output as txt for simluation.')
+          'Store output as txt for simluation. '
+          'ESPECIALLY for YOLO tiny layer 11.')
       data_reshape = tfReshape(data_1d, [-1, args.paral_out])
       data_quantize = QuantizeFunc(data_reshape)
       it = np.nditer(
           data_quantize.numpy().astype(np.int16), flags=['multi_index'])
       for npiter in it:
+        if it.multi_index[0] % 676 == 0 and it.multi_index[1] == 0:
+          print('[INFO][convert_out_structure.py] Line {}. Writing zero...'
+              .format(it.multi_index[0]))
+          utils.WriteZero(13*4, f)
+
         if it.multi_index[1] == 0:
           data_str = ''
 
