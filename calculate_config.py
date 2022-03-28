@@ -5,8 +5,8 @@ import pdb
 
 # Parameter
 layer_num = 1
-# conf_path = Path('.') / 'config' / 'yolo.csv'
-conf_path = Path('.') / 'config' / 'test.csv'
+conf_path = Path('.') / 'config' / 'yolo.csv'
+# conf_path = Path('.') / 'config' / 'test.csv'
 
 config_value = np.ndarray((11, layer_num))
 

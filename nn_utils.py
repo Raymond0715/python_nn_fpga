@@ -4,6 +4,8 @@ import tensorflow as tf
 from tensorflow.keras import regularizers
 from quantization import QuantizeFn, tangent
 
+none, QuantizeBias = QuantizeFn(4, 4, 7, 16, 'shift')
+
 class QConv2D(tf.keras.layers.Layer):
   def __init__(
       self,
@@ -60,7 +62,8 @@ class QConv2D(tf.keras.layers.Layer):
       input_tensor = tangent(
           input_tensor, input_tensor_quantize, self.alpha)
       if self.use_bias:
-        bias = self.QuantizeActivation(self.bias)
+        # bias = self.QuantizeActivation(self.bias)
+        bias = QuantizeBias(self.bias)
     else:
       filters = self.filters
       if self.use_bias:

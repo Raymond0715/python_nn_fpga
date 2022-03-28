@@ -37,10 +37,10 @@ if __name__ == '__main__':
       '`shfit` for shift and `mul` for multiply')
   parser.add_argument(
       '--quantize_b_integer', default = 8, type = int,
-      help = 'Specify integer data width of input tensor.')
+      help = 'Specify integer data width of bias tensor.')
   parser.add_argument(
       '--quantize_b', default = 24, type = int,
-      help = 'Specify data width of input tensor.')
+      help = 'Specify data width of bias tensor.')
 
   parser.add_argument(
       '--img_w', default = 56, type = int,
