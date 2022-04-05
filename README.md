@@ -208,7 +208,7 @@
     --bin
     ```
 
-  - $416 \times 416 \times 8$; 移位; w3a8; 仿真
+  - $416 \times 416 \times 8$; 移位; w3a8; 上板
     ```sh
     python convert_act_structure.py \
     --input img_416_8.bin \
@@ -674,6 +674,8 @@ $56 \times 56 \times 256 = 0x8318\_8000$
 
   - 计算控制信号, 控制信号定义详见 `interface.txt`
 
+  - 生成 Xilinx SDK 中的代码模板
+
 
 # 4 Architecture
 
@@ -789,3 +791,42 @@ $8845744=432+4608+18432+73728+294912+1179648+4718592+262400+1179648+130560+32768
 | 16      | $128 \times 26 \times 26 + 256 \times 26 \times 26,259584$ | $384 \times 26 \times 26,259584$   | $concat$                                         |                    |
 | 17      | $384 \times 26 \times 26,259584$                           | $256 \times 26 \times 26,173056$   | $conv:384 \times 256 \times 3 \times 3,884736$   | **259584**, 884736 |
 | 18      | $256 \times 26 \times 26,173056$                           | $256 \times 26 \times 26,172380$   | $conv:256 \times 255 \times 1 \times 1,65280$    | 173056, **65280**  |
+
+
+## 4.5 YOLO V2 for Hardware
+
+| Layer   | Input Layer                              | Output Layer                        | Operation                                                 | ram cost            |
+| ------- | -----------------------------------------| ----------------------------------- | --------------------------------------------------------- | ------------------- |
+|  1      | $8 \times 416 \times 416, 1384448$       | $64 \times 416 \times 416,11075584$ | $conv:8 \times 64 \times 3 \times 3,4608, step:1$         | 1384448,    **4608** |
+|  2      | $64 \times 416 \times 416,11075584$      | $64 \times 208 \times 208,2768896$  | $conv:64 \times 64 \times 3 \times 3,36864, step:2$       | 11075584,  **36864** |
+|  3      | $64 \times 208 \times 208,2768896$       | $64 \times 208 \times 208,2768896$  | $conv:64 \times 64 \times 3 \times 3,36864, step:1$       | 2768896,   **36864** |
+|  4      | $64 \times 208 \times 208,2768896$       | $64 \times 104 \times 104,692224$   | $conv:64 \times 64 \times 3 \times 3,36864, step:2$       | 2768896,   **36864** |
+|  5      | $64 \times 104 \times 104,692224$        | $128 \times 104 \times 104,1384448$ | $conv:64 \times 128 \times 3 \times 3,73728, step:1$      | 692224,    **73728** |
+|  6      | $128 \times 104 \times 104,1384448$      | $64 \times 104 \times 104,692224$   | $conv:128 \times 64 \times 1 \times 1,8192, step:1$       | 1384448,    **8192** |
+|  7      | $64 \times 104 \times 104,692224$        | $128 \times 104 \times 104,1384448$ | $conv:64 \times 128 \times 3 \times 3,73728, step:1$      | 692224,    **73728** |
+|  8      | $128 \times 104 \times 104,1384448$      | $128 \times 52 \times 52,346112$    | $conv:128 \times 128 \times 3 \times 3,147456, step:2$    | 1384448,  **147456** |
+|  9      | $128 \times 52 \times 52,346112$         | $256 \times 52 \times 52,692224$    | $conv:128 \times 256 \times 3 \times 3,294912, step:1$    | 692224,   **294912** |
+| 10      | $256 \times 52 \times 52,692224$         | $128 \times 52 \times 52,346112$    | $conv:256 \times 128 \times 1 \times 1,32768, step:1$     | 692224,    **32768** |
+| 11      | $128 \times 52 \times 52,346112$         | $256 \times 52 \times 52,692224$    | $conv:128 \times 256 \times 3 \times 3,294912, step:1$    | 692224,   **294912** |
+| 12      | $256 \times 52 \times 52,692224$         | $256 \times 26 \times 26,173056$    | $conv:256 \times 256 \times 3 \times 3,589824, step:2$    | 692224,   **589824** |
+| 13      | $256 \times 26 \times 26,173056$         | $512 \times 26 \times 26,346112$    | $conv:256 \times 512 \times 3 \times 3,1179648, step:1$   | **173056**,  1179648 |
+| 14      | $512 \times 26 \times 26,346112$         | $256 \times 26 \times 26,173056$    | $conv:512 \times 256 \times 1 \times 1,131072, step:1$    | 173056,   **131072** |
+| 15      | $256 \times 26 \times 26,173056$         | $512 \times 26 \times 26,346112$    | $conv:256 \times 512 \times 3 \times 3,1179648, step:1$   | **173056**,  1179648 |
+| 16      | $512 \times 26 \times 26,346112$         | $256 \times 26 \times 26,173056$    | $conv:512 \times 256 \times 1 \times 1,131072, step:1$    | 346112,   **131072** |
+| 17      | $256 \times 26 \times 26,173056$         | $512 \times 26 \times 26,346112$    | $conv:256 \times 512 \times 3 \times 3,1179648, step:1$   | **173056**,  1179648 |
+| 18      | $512 \times 26 \times 26,346112$         | $512 \times 13 \times 13,86528$     | $conv:512 \times 512 \times 3 \times 3,2359296, step:2$   | **346112**,  2359296 |
+| 19      | $512 \times 13 \times 13,86528$          | $1024 \times 13 \times 13,173056$   | $conv:512 \times 1024 \times 3 \times 3,4718592, step:1$  | **86528**,   4718592 |
+| 20      | $1024 \times 13 \times 13,173056$        | $512 \times 13 \times 13,86528$     | $conv:1024 \times 512 \times 1 \times 1,524288, step:1$   | **173056**,   524288 |
+| 21      | $512 \times 13 \times 13,86528$          | $1024 \times 13 \times 13,173056$   | $conv:512 \times 1024 \times 3 \times 3,4718592, step:1$  | **86528**,   4718592 |
+| 22      | $1024 \times 13 \times 13,173056$        | $512 \times 13 \times 13,86528$     | $conv:1024 \times 512 \times 1 \times 1,524288, step:1$   | **173056**,   524288 |
+| 23      | $512 \times 13 \times 13,86528$          | $1024 \times 13 \times 13,173056$   | $conv:512 \times 1024 \times 3 \times 3,4718592, step:1$  | **86528**,   4718592 |
+| 24      | $1024 \times 13 \times 13,173056$        | $1024 \times 13 \times 13,173056$   | $conv:1024 \times 1024 \times 3 \times 3,9437184, step:1$ | **173056**,  9437184 |
+| 25      | $1024 \times 13 \times 13,173056$        | $1024 \times 13 \times 13,173056$   | $conv:1024 \times 1024 \times 3 \times 3,9437184, step:1$ | **173056**,  9437184 |
+| 26      | $1024 \times 13 \times 13,173056$        | $1024 \times 13 \times 13,173056$   | $conv:1024 \times 1024 \times 3 \times 3,9437184, step:1$ | **173056**,  9437184 |
+| 27      | $1024 \times 13 \times 13,173056$        | $256 \times 13 \times 13,43264$     | $conv:1024 \times 256 \times 1 \times 1,2359296, step:1$  | **173056**,  262144  |
+
+Total weight number:
+$53666304=4608+36864*3+73728+8192+73728+147456+294912+32768+294912+589824+1179648+131072+1179648+131072+1179648+2359296+(4718592+524288)*2+4718592+9437184*3+2359296$
+
+Total bias number:
+$11584=64*4+128+64+128+(128+256)*2+(256+512)*3+(512+1024)*3+1024*3+256$

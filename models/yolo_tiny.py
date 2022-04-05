@@ -182,7 +182,7 @@ class YoloTiny(Model):
 
     x10 = self.conv16(x9)
 
-    return x6
+    return x10
 
 def GenerateModel(
     quantize, quantize_w_int, quantize_w, quantize_x_int, quantize_x):

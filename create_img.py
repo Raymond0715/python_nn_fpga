@@ -4,15 +4,15 @@ import numpy as np
 from pathlib import Path
 import pdb
 
-img_w = 208
-img_h = 208
-img_ch = 16
+img_w = 416
+img_h = 416
+img_ch = 8
 num_pixel = img_w * img_h * img_ch
 sc = img_h * img_w
 sh = img_h
 sw = 1
 
-dat_path = Path('.') / 'fig' / 'img_208_16.bin'
+dat_path = Path('.') / 'fig' / 'img_2.bin'
 
 img = np.random.randint(255, size = (img_ch, img_h, img_w), dtype = np.uint8)
 
