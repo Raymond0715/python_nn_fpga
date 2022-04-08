@@ -4,7 +4,7 @@ import tensorflow as tf
 from tensorflow.keras import regularizers
 from quantization import QuantizeFn, tangent
 
-none, QuantizeBias = QuantizeFn(4, 4, 7, 16, 'shift')
+none, QuantizeBias = QuantizeFn(4, 7, 4, 16, 'shift')
 
 class QConv2D(tf.keras.layers.Layer):
   def __init__(
