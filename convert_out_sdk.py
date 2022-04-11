@@ -4,19 +4,30 @@ import utils
 
 
 # dat_raw_path = Path('.') / 'dat' / 'yolo_tiny_pass_version' / 'out_yolo_bench1_l16_process.dat'
-# dat_path = Path('.') / 'dat' / 'o1_process.bin'
+dat_raw_path = Path('.') / 'dat' / 'yolo' / 'out2_yolo_bench1_l16_process.dat'
+dat_path = Path('.') / 'dat' / 'o3_pc_process.txt'
 
-# dat_raw_path = Path('.') / 'dat' / 'o1_process.bin'
-# dat_path = Path('.') / 'dat' / 'o1_process_txt.txt'
+# dat_raw_path = Path('.') / 'dat' / 'out_test_process.dat'
+# dat_path = Path('.') / 'dat' / 'out_test_process_txt.txt'
+# dat_raw_path = Path('.') / 'dat' / 'out_l9l10_pc_process.dat'
+# dat_path = Path('.') / 'dat' / 'out_l9l10_pc_process_txt.txt'
 
-dat_raw_path = Path('.') / 'dat' / 'o1.bin'
-dat_path = Path('.') / 'dat' / 'o1_txt.txt'
+# dat_raw_path = Path('.') / 'dat' / 'o1.bin'
+# dat_path = Path('.') / 'dat' / 'o1_txt.txt'
 
-# out_raw = np.fromfile(dat_raw_path, dtype=np.int32)
-out_raw = np.fromfile(dat_raw_path, dtype=np.int16)
+out_raw = np.fromfile(dat_raw_path, dtype=np.int32)
+# out_raw = np.fromfile(dat_raw_path, dtype=np.int16)
 out_reshape = np.reshape(out_raw, (-1,8))
+
 out_fliplr = np.fliplr(out_reshape)
 out_final = np.copy(out_fliplr.astype(np.int16))
+# out_final = out_reshape
+
+# out_2d = np.copy(out_fliplr.astype(np.int16))
+
+# out_4d = np.reshape(out_2d, (26, 32, 26, 8))
+
+# out_final = np.copy(out_4d[0:-1:2, :, 0:-1:2, :])
 
 # with open(str(dat_path), mode='wb') as f:
   # for npiter in np.nditer(out_final):

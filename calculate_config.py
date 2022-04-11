@@ -70,15 +70,22 @@ def GenerateCCode(f, i, channel_in, channel_out, img_h,
 channel_in = 8
 
 # conf_path = Path('.') / 'config' / 'yolo_v3_tiny.csv'
-# weight_addr = 0
+# out_path = Path('.') / 'config' / 'yolo_v3_tiny_template.cpp'
 # act_addr = 0x2000000
+# weight_addr = 0
 # bias_addr = 0x1000000
 
-conf_path = Path('.') / 'config' / 'yolo_v2.csv'
-out_path = Path('.') / 'config' / 'yolo_v2_template.cpp'
-act_addr = 0x5000000
+conf_path = Path('.') / 'config' / 'test.csv'
+out_path = Path('.') / 'config' / 'test_template.cpp'
+act_addr = 0x2000000
 weight_addr = 0
-bias_addr = 0x4000000
+bias_addr = 0x1000000
+
+# conf_path = Path('.') / 'config' / 'yolo_v2.csv'
+# out_path = Path('.') / 'config' / 'yolo_v2_template.cpp'
+# act_addr = 0x5000000
+# weight_addr = 0
+# bias_addr = 0x4000000
 
 
 print('[INFO][calculate_config.py] Initial weight: 0x000c000e')
