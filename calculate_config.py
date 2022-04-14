@@ -75,17 +75,18 @@ channel_in = 8
 # weight_addr = 0
 # bias_addr = 0x1000000
 
-conf_path = Path('.') / 'config' / 'test.csv'
-out_path = Path('.') / 'config' / 'test_template.cpp'
-act_addr = 0x2000000
-weight_addr = 0
-bias_addr = 0x1000000
-
-# conf_path = Path('.') / 'config' / 'yolo_v2.csv'
-# out_path = Path('.') / 'config' / 'yolo_v2_template.cpp'
-# act_addr = 0x5000000
+# conf_path = Path('.') / 'config' / 'test.csv'
+# out_path = Path('.') / 'config' / 'test_template.cpp'
+# act_addr = 0x2000000
 # weight_addr = 0
-# bias_addr = 0x4000000
+# bias_addr = 0x1000000
+
+conf_path = Path('.') / 'config' / 'yolo_v2.csv'
+out_path = Path('.') / 'config' / 'yolo_v2_template.cpp'
+act_addr = 0x8000000
+weight_addr = 0
+bias_addr = 0x7000000
+OPS = 0
 
 
 print('[INFO][calculate_config.py] Initial weight: 0x000c000e')
@@ -122,6 +123,9 @@ with open(conf_path, newline='') as csvfile, \
 
     out_in_ch = channel_out * 16**3 + channel_in
 
+    # MAC
+    OPS += channel_in * 9 * channel_out * int(row['conf_img_h'])**2 * 2
+
     print(
         '[INFO][calculate_config.py][{}]\n'
         'config_value: 0x{:0>8x}\n'
@@ -143,3 +147,5 @@ with open(conf_path, newline='') as csvfile, \
     weight_addr = weight_addr + weight_len * 2
     bias_addr = bias_addr + channel_out * 4
     act_addr = ddr_addr
+
+  print('[INFO][calculate_config.py] OPS:', OPS)
